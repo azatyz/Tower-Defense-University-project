@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random
 from settings import *
 
 def init_game():
@@ -31,6 +32,22 @@ def game_loop():
         
         pygame.display.flip()
         clock.tick(FPS)
+
+def create_enemies():
+    return {
+        'x': 0,
+        'y': random.randint(100, HEIGHT - 100),
+        'speed': random.randint(2, 5),
+        'hp': 100
+    }
+
+def move_enemies(enemies):
+    for enemy in enemies:
+        enemy['x'] += enemy['speed']
+
+def draw_enemies(screen, enemies):
+    for enemy in enemies:
+        pygame.draw.circle(screen, RED, (enemy["x"], enemy["y"]), 15)
 
     pygame.quit()
     sys.exit()
