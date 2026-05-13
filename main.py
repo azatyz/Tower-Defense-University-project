@@ -12,8 +12,19 @@ def init_game():
     return screen, clock
 
 def game_loop():
-    
     """Главный цикл"""
+
+base_health = 100 
+
+def check_collisions(enemies):
+    global base_health
+    
+    for enemy in enemies:
+        if enemy["x"] >= WIDTH - 60:
+            base_health -= 10
+            print(f"Base HP: {base_health}")
+
+    enemies[:] = [e for e in enemies if e["x"] < WIDTH - 60]
 
     screen, clock = init_game()
     running = True
