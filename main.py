@@ -12,7 +12,9 @@ def init_game():
     return screen, clock
 
 def game_loop():
+    
     """Главный цикл"""
+
     screen, clock = init_game()
     running = True
 
@@ -27,13 +29,13 @@ def game_loop():
         # 3. Отрисовка
         screen.fill(BLACK) # Фон
         
-        # Рисуем "заглушку" башни (просто квадрат)
+        # Рисуем "заглушку" башни
         pygame.draw.rect(screen, GREEN, (WIDTH//2 - 25, HEIGHT//2 - 25, 50, 50))
         
         pygame.display.flip()
         clock.tick(FPS)
 
-def create_enemies():
+def create_enemy():
     return {
         'x': 0,
         'y': random.randint(100, HEIGHT - 100),
@@ -48,6 +50,36 @@ def move_enemies(enemies):
 def draw_enemies(screen, enemies):
     for enemy in enemies:
         pygame.draw.circle(screen, RED, (enemy["x"], enemy["y"]), 15)
+
+def game_loop():
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Tower Defense Project")
+    clock = pygame.time.Clock()   
+
+    enemies = []     
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            
+            # Пробел - спавн врага
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    enemies.append(create_enemy())
+
+        move_enemies(enemies)
+        
+        screen.fill(BLACK)
+        
+        pygame.draw.rect(screen, GREEN, (WIDTH - 60, HEIGHT // 2 - 25, 50, 50))
+        
+        draw_enemies(screen, enemies)
+        
+        pygame.display.flip()
+        clock.tick(FPS)
 
     pygame.quit()
     sys.exit()
