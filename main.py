@@ -3,34 +3,52 @@ import sys
 import random
 from settings import *
 
+
+class Enemy:
+    """Класс для представления врага"""
+    def __init__(self, x=0, y=None):
+        self.x = x
+        self.y = y if y is not None else random.randint(100, HEIGHT - 100)
+        self.speed = random.randint(2, 5)
+        self.hp = 100
+        self.radius = 15
+
+    def update(self):
+        self.x += self.speed
+
+    def draw(self, screen):
+        pygame.draw.circle(screen, RED, (self.x, self.y), self.radius)
+
+    def is_out_of_bounds(self):
+        return self.x >= WIDTH - 60
+
+
 # _global_
 base_health = 100 
 
-def create_enemy():
-    return {
-        'x': 0,
-        'y': random.randint(100, HEIGHT - 100),
-        'speed': random.randint(2, 5),
-        'hp': 100
-    }
-
 def move_enemies(enemies):
     for enemy in enemies:
-        enemy['x'] += enemy['speed']
+        enemy.update()
+
 
 def draw_enemies(screen, enemies):
     for enemy in enemies:
-        pygame.draw.circle(screen, RED, (enemy["x"], enemy["y"]), 15)
+        enemy.draw(screen)
+
 
 def check_collisions(enemies):
     global base_health
     
+    out_of_bounds = []
     for enemy in enemies:
-        if enemy["x"] >= WIDTH - 60:
+        if enemy.is_out_of_bounds():
             base_health -= 10
             print(f"База атакована! Осталось HP: {base_health}")
-
-    enemies[:] = [e for e in enemies if e["x"] < WIDTH - 60]
+            out_of_bounds.append(enemy)
+    
+    # Удалить врагов, дошедших до базы
+    for enemy in out_of_bounds:
+        enemies.remove(enemy)
 
 
 def game_loop():
@@ -51,7 +69,7 @@ def game_loop():
             # Пробел - спавн врага
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    enemies.append(create_enemy())
+                    enemies.append(Enemy())
 
         move_enemies(enemies)        # Двигаем мобов
         check_collisions(enemies)    # Проверяем, не дошел ли кто-то до базы
