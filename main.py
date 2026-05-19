@@ -4,47 +4,6 @@ import random
 from settings import *
 
 
-class GameManager:
-    """Класс для управления состоянием игры"""
-    def __init__(self):
-        self.money = 200
-        self.kills = 0
-        self.wave = 1
-        self.wave_timer = 0
-        self.wave_cooldown = 120  # Секунды между волнами (в кадрах)
-        self.enemies_in_wave = 3
-        self.spawned_this_wave = 0
-
-    def update(self):
-        """Обновить состояние игры"""
-        self.wave_timer += 1
-
-    def is_wave_ready(self):
-        """Проверить, пора ли начинать новую волну"""
-        return self.wave_timer >= self.wave_cooldown and self.spawned_this_wave >= self.enemies_in_wave
-
-    def next_wave(self):
-        """Перейти на следующую волну"""
-        self.wave += 1
-        self.enemies_in_wave = 3 + self.wave  # Больше врагов с каждой волной
-        self.wave_timer = 0
-        self.spawned_this_wave = 0
-        print(f"⚔️ Волна {self.wave}! Врагов: {self.enemies_in_wave}")
-
-    def spawn_enemy_this_wave(self):
-        """Отметить спавн врага в текущей волне"""
-        self.spawned_this_wave += 1
-
-    def add_money(self, amount):
-        """Добавить деньги за убитого врага"""
-        self.money += amount
-        self.kills += 1
-
-    def get_info_text(self):
-        """Получить информацию для отображения на экране"""
-        return f"Волна: {self.wave} | Деньги: {self.money} | Убито: {self.kills}"
-
-
 class Enemy:
     """Класс для представления врага"""
     def __init__(self, x=0, y=None):
@@ -73,7 +32,7 @@ class Tower:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.radius = 140  # Радиус обстрела
+        self.radius = 40  # Радиус обстрела
         self.damage = 25
         self.cooldown = 0  # Текущая перезарядка
         self.cooldown_max = 30  # Максимальная перезарядка (в кадрах)
@@ -186,45 +145,27 @@ def game_loop():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tower Defense Project")
-    clock = pygame.time.Clock()
-    font = pygame.font.Font(None, 24)
+    clock = pygame.time.Clock()   
 
     enemies = []
     projectiles = []
+    # Создаём башню в центре-справа экрана
     tower = Tower(WIDTH - 60, HEIGHT // 2)
-    game_manager = GameManager()
-    
     running = True
-    auto_spawn = True  # Автоматический спавн волн
     
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             
-            # Пробел - ручной спавн врага (для тестирования)
+            # Пробел - спавн врага
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     enemies.append(Enemy())
-                # E - начать новую волну вручную
-                if event.key == pygame.K_e:
-                    game_manager.next_wave()
 
-        game_manager.update()
-
-        # Автоматический спавн волн
-        if auto_spawn and game_manager.spawned_this_wave < game_manager.enemies_in_wave:
-            if game_manager.wave_timer % 30 == 0:  # Спавн каждые 0.5 сек
-                enemies.append(Enemy())
-                game_manager.spawn_enemy_this_wave()
-
-        # Переход на следующую волну
-        if auto_spawn and game_manager.is_wave_ready():
-            game_manager.next_wave()
-
-        move_enemies(enemies)
-        check_collisions(enemies)
-        tower.update()
+        move_enemies(enemies)        # Двигаем мобов
+        check_collisions(enemies)    # Проверяем, не дошел ли кто-то до базы
+        tower.update()               # Обновляем башню (перезарядка)
 
         # Башня ищет цель и стреляет
         target = tower.find_target(enemies)
@@ -252,10 +193,9 @@ def game_loop():
                     # Враг умер
                     if enemy.hp <= 0:
                         enemies.remove(enemy)
-                        game_manager.add_money(50)  # Деньги за убитого врага
                     break
 
-        screen.fill(BLACK)
+        screen.fill(BLACK) # Чистим экран в черный цвет
         
         draw_enemies(screen, enemies)
         tower.draw(screen)
@@ -263,11 +203,6 @@ def game_loop():
         # Рисуем снаряды
         for projectile in projectiles:
             projectile.draw(screen)
-        
-        # Отображаем информацию
-        info_text = game_manager.get_info_text()
-        text_surface = font.render(info_text, True, WHITE)
-        screen.blit(text_surface, (10, 10))
         
         pygame.display.flip()
         clock.tick(FPS)
