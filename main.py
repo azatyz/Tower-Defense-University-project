@@ -4,6 +4,66 @@ import random
 from settings import *
 
 
+class GameManager:
+    """Класс для управления состоянием игры (волны, деньги, статистика)"""
+    def __init__(self):
+        self.money = 200
+        self.kills = 0
+        self.wave = 1
+        self.wave_timer = 0
+        self.wave_cooldown = 120  # Кадры между волнами
+        self.enemies_in_wave = 3
+        self.spawned_this_wave = 0
+        self.game_over = False
+        self.max_kills_per_wave = 0
+
+    def update(self):
+        """Обновить состояние игры"""
+        self.wave_timer += 1
+
+    def is_wave_ready(self):
+        """Проверить, пора ли начинать новую волну (сложная функция - логика волн)"""
+        return self.wave_timer >= self.wave_cooldown and self.spawned_this_wave >= self.enemies_in_wave
+
+    def next_wave(self):
+        """Перейти на следующую волну"""
+        self.wave += 1
+        self.enemies_in_wave = 3 + self.wave  # Больше врагов с каждой волной
+        self.max_kills_per_wave = self.kills  # Сохраняем максимум убитых
+        self.wave_timer = 0
+        self.spawned_this_wave = 0
+        print(f"⚔️ Волна {self.wave}! Врагов: {self.enemies_in_wave}")
+
+    def spawn_enemy_this_wave(self):
+        """Отметить спавн врага в текущей волне"""
+        self.spawned_this_wave += 1
+
+    def add_money(self, amount):
+        """Добавить деньги за убитого врага"""
+        self.money += amount
+        self.kills += 1
+
+    def calculate_wave_efficiency(self):
+        """Вычислить эффективность волны (сложная функция - алгоритм оценки производительности)"""
+        if self.enemies_in_wave == 0:
+            return 0.0
+        # Формула: (убитых врагов / спавненных в волне) * 100
+        killed_this_wave = self.kills - self.max_kills_per_wave
+        efficiency = (killed_this_wave / self.enemies_in_wave) * 100
+        return efficiency
+
+    def is_game_over(self, base_health):
+        """Проверить, проиграл ли игрок"""
+        if base_health <= 0:
+            self.game_over = True
+            return True
+        return False
+
+    def get_info_text(self):
+        """Получить информацию для отображения на экране"""
+        return f"Волна: {self.wave} | Деньги: {self.money} | Убито: {self.kills}"
+
+
 class Enemy:
     """Класс для представления врага"""
     def __init__(self, x=0, y=None):
@@ -32,7 +92,7 @@ class Tower:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.radius = 40  # Радиус обстрела
+        self.radius = 150  # Радиус обстрела (увеличен для лучшей защиты)
         self.damage = 25
         self.cooldown = 0  # Текущая перезарядка
         self.cooldown_max = 30  # Максимальная перезарядка (в кадрах)
@@ -142,37 +202,66 @@ def check_collisions(enemies):
 
 def game_loop():
     """ Главный игровой цикл """
+    global base_health
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tower Defense Project")
-    clock = pygame.time.Clock()   
+    clock = pygame.time.Clock()
+    font = pygame.font.Font(None, 24)
+    font_large = pygame.font.Font(None, 72)
 
     enemies = []
     projectiles = []
-    # Создаём башню в центре-справа экрана
     tower = Tower(WIDTH - 60, HEIGHT // 2)
+    game_manager = GameManager()
+    
     running = True
+    auto_spawn = True  # Автоматический спавн волн
     
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             
-            # Пробел - спавн врага
+            # Пробел - ручной спавн врага (для тестирования)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     enemies.append(Enemy())
+                # E - начать новую волну вручную
+                if event.key == pygame.K_e:
+                    game_manager.next_wave()
+                # R - перезагрузить игру
+                if event.key == pygame.K_r and game_manager.game_over:
+                    game_loop()
+                    return
 
-        move_enemies(enemies)        # Двигаем мобов
-        check_collisions(enemies)    # Проверяем, не дошел ли кто-то до базы
-        tower.update()               # Обновляем башню (перезарядка)
+        game_manager.update()
 
-        # Башня ищет цель и стреляет
-        target = tower.find_target(enemies)
-        if target and tower.can_shoot():
-            projectile = Projectile(tower.x, tower.y, target.x, target.y, tower.damage)
-            projectiles.append(projectile)
-            tower.shoot()
+        # Автоматический спавн волн
+        if auto_spawn and game_manager.spawned_this_wave < game_manager.enemies_in_wave:
+            if game_manager.wave_timer % 30 == 0:  # Спавн каждые 0.5 сек
+                enemies.append(Enemy())
+                game_manager.spawn_enemy_this_wave()
+
+        # Переход на следующую волну
+        if auto_spawn and game_manager.is_wave_ready():
+            game_manager.next_wave()
+
+        move_enemies(enemies)
+        check_collisions(enemies)
+        tower.update()
+
+        # Проверяем Game Over
+        if game_manager.is_game_over(base_health):
+            print(f"🎮 GAME OVER! Волн: {game_manager.wave} | Убито: {game_manager.kills} | Деньги: {game_manager.money}")
+
+        # Башня ищет цель и стреляет (только если игра не закончена)
+        if not game_manager.game_over:
+            target = tower.find_target(enemies)
+            if target and tower.can_shoot():
+                projectile = Projectile(tower.x, tower.y, target.x, target.y, tower.damage)
+                projectiles.append(projectile)
+                tower.shoot()
 
         # Обновляем снаряды
         for projectile in projectiles[:]:
@@ -193,9 +282,10 @@ def game_loop():
                     # Враг умер
                     if enemy.hp <= 0:
                         enemies.remove(enemy)
+                        game_manager.add_money(50)  # Деньги за убитого врага
                     break
 
-        screen.fill(BLACK) # Чистим экран в черный цвет
+        screen.fill(BLACK)
         
         draw_enemies(screen, enemies)
         tower.draw(screen)
@@ -203,6 +293,36 @@ def game_loop():
         # Рисуем снаряды
         for projectile in projectiles:
             projectile.draw(screen)
+        
+        # Отображаем информацию на экране
+        info_text = game_manager.get_info_text()
+        text_surface = font.render(info_text, True, WHITE)
+        screen.blit(text_surface, (10, 10))
+        
+        # Отображаем HP базы
+        hp_text = f"HP: {base_health}/100"
+        hp_surface = font.render(hp_text, True, RED if base_health < 30 else WHITE)
+        screen.blit(hp_surface, (10, 40))
+        
+        # Game Over экран
+        if game_manager.game_over:
+            overlay = pygame.Surface((WIDTH, HEIGHT))
+            overlay.set_alpha(200)
+            overlay.fill(BLACK)
+            screen.blit(overlay, (0, 0))
+            
+            game_over_text = font_large.render("GAME OVER", True, RED)
+            text_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
+            screen.blit(game_over_text, text_rect)
+            
+            stats_text = f"Волны: {game_manager.wave} | Убито: {game_manager.kills} | Деньги: {game_manager.money}"
+            stats_surface = font.render(stats_text, True, WHITE)
+            stats_rect = stats_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
+            screen.blit(stats_surface, stats_rect)
+            
+            restart_text = font.render("Нажми R для перезагрузки или Q для выхода", True, WHITE)
+            restart_rect = restart_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 100))
+            screen.blit(restart_text, restart_rect)
         
         pygame.display.flip()
         clock.tick(FPS)
