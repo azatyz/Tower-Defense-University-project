@@ -47,7 +47,7 @@ class GameManager:
         """Вычислить эффективность волны (сложная функция - алгоритм оценки производительности)"""
         if self.enemies_in_wave == 0:
             return 0.0
-        # Формула: (убитых врагов / спавненных в волне) * 100
+
         killed_this_wave = self.kills - self.max_kills_per_wave
         efficiency = (killed_this_wave / self.enemies_in_wave) * 100
         return efficiency
@@ -92,10 +92,10 @@ class Tower:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.radius = 150  # Радиус обстрела (увеличен для лучшей защиты)
+        self.radius = 150  # Радиус обстрела 
         self.damage = 25
         self.cooldown = 0  # Текущая перезарядка
-        self.cooldown_max = 30  # Максимальная перезарядка (в кадрах)
+        self.cooldown_max = 30  # Максимальная перезарядка
         self.width = 50
         self.height = 100
 
@@ -112,7 +112,6 @@ class Tower:
                 targets.append((distance, enemy))
         
         if targets:
-            # Возвращаем врага с наименьшим расстоянием
             return min(targets, key=lambda t: t[0])[1]
         return None
 
@@ -145,7 +144,7 @@ class Projectile:
         self.speed = 8
         self.radius = 5
         
-        # Вычисляем направление (сложная функция)
+
         dx = target_x - start_x
         dy = target_y - start_y
         distance = (dx ** 2 + dy ** 2) ** 0.5
@@ -195,7 +194,6 @@ def check_collisions(enemies):
             print(f"База атакована! Осталось HP: {base_health}")
             out_of_bounds.append(enemy)
     
-    # Удалить врагов, дошедших до базы
     for enemy in out_of_bounds:
         enemies.remove(enemy)
 
@@ -216,7 +214,7 @@ def game_loop():
     game_manager = GameManager()
     
     running = True
-    auto_spawn = True  # Автоматический спавн волн
+    auto_spawn = True 
     
     while running:
         for event in pygame.event.get():
@@ -232,79 +230,78 @@ def game_loop():
                     game_manager.next_wave()
                 # R - перезагрузить игру
                 if event.key == pygame.K_r and game_manager.game_over:
-                    game_loop()
-                    return
+                    pygame.quit()
+                    return game_loop()
+                # Q - выход из игры
+                if event.key == pygame.K_q and game_manager.game_over:
+                    running = False
 
         game_manager.update()
 
-        # Автоматический спавн волн
-        if auto_spawn and game_manager.spawned_this_wave < game_manager.enemies_in_wave:
-            if game_manager.wave_timer % 30 == 0:  # Спавн каждые 0.5 сек
-                enemies.append(Enemy())
-                game_manager.spawn_enemy_this_wave()
 
-        # Переход на следующую волну
-        if auto_spawn and game_manager.is_wave_ready():
-            game_manager.next_wave()
-
-        move_enemies(enemies)
-        check_collisions(enemies)
-        tower.update()
-
-        # Проверяем Game Over
         if game_manager.is_game_over(base_health):
-            print(f"🎮 GAME OVER! Волн: {game_manager.wave} | Убито: {game_manager.kills} | Деньги: {game_manager.money}")
+            pass
 
-        # Башня ищет цель и стреляет (только если игра не закончена)
+  
         if not game_manager.game_over:
+            if auto_spawn and game_manager.spawned_this_wave < game_manager.enemies_in_wave:
+                if game_manager.wave_timer % 30 == 0:  # Спавн каждые 0.5 сек
+                    enemies.append(Enemy())
+                    game_manager.spawn_enemy_this_wave()
+
+            if auto_spawn and game_manager.is_wave_ready():
+                game_manager.next_wave()
+
+            move_enemies(enemies)
+            check_collisions(enemies)
+            tower.update()
+
+  
             target = tower.find_target(enemies)
             if target and tower.can_shoot():
                 projectile = Projectile(tower.x, tower.y, target.x, target.y, tower.damage)
                 projectiles.append(projectile)
                 tower.shoot()
 
-        # Обновляем снаряды
-        for projectile in projectiles[:]:
-            projectile.update()
-            if projectile.is_out_of_bounds():
-                projectiles.remove(projectile)
 
-        # Проверяем попадания снарядов в врагов
-        for projectile in projectiles[:]:
-            for enemy in enemies[:]:
-                distance = projectile.get_distance_to(enemy.x, enemy.y)
-                if distance < enemy.radius + projectile.radius:
-                    # Попадание!
-                    enemy.hp -= projectile.damage
-                    if projectile in projectiles:
-                        projectiles.remove(projectile)
-                    
-                    # Враг умер
-                    if enemy.hp <= 0:
-                        enemies.remove(enemy)
-                        game_manager.add_money(50)  # Деньги за убитого врага
-                    break
+            for projectile in projectiles[:]:
+                projectile.update()
+                if projectile.is_out_of_bounds():
+                    projectiles.remove(projectile)
+
+
+            for projectile in projectiles[:]:
+                for enemy in enemies[:]:
+                    distance = projectile.get_distance_to(enemy.x, enemy.y)
+                    if distance < enemy.radius + projectile.radius:
+                        enemy.hp -= projectile.damage
+                        if projectile in projectiles:
+                            projectiles.remove(projectile)
+                        
+                        if enemy.hp <= 0:
+                            enemies.remove(enemy)
+                            game_manager.add_money(50) 
 
         screen.fill(BLACK)
         
         draw_enemies(screen, enemies)
         tower.draw(screen)
         
-        # Рисуем снаряды
+
         for projectile in projectiles:
             projectile.draw(screen)
         
-        # Отображаем информацию на экране
+
         info_text = game_manager.get_info_text()
         text_surface = font.render(info_text, True, WHITE)
         screen.blit(text_surface, (10, 10))
         
-        # Отображаем HP базы
+
         hp_text = f"HP: {base_health}/100"
         hp_surface = font.render(hp_text, True, RED if base_health < 30 else WHITE)
         screen.blit(hp_surface, (10, 40))
         
-        # Game Over экран
+
         if game_manager.game_over:
             overlay = pygame.Surface((WIDTH, HEIGHT))
             overlay.set_alpha(200)
