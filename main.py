@@ -4,6 +4,52 @@ import random
 from settings import *
 
 
+class Path:
+    """Класс для управления тропинкой"""
+    def __init__(self, points):
+        self.points = points
+        self.path_width = 60  # Ширина тропинки
+        self.path_color = (80, 80, 80)  # Цвет дорожки
+        
+    def draw(self, screen):
+        """Нарисовать тропинку на экране"""
+        if len(self.points) > 1:
+            # Рисуем линию между каждыми двумя точками
+            for i in range(len(self.points) - 1):
+                start = (int(self.points[i][0]), int(self.points[i][1]))
+                end = (int(self.points[i + 1][0]), int(self.points[i + 1][1]))
+                pygame.draw.line(screen, self.path_color, start, end, self.path_width)
+            
+            for point in self.points:
+                pygame.draw.circle(screen, self.path_color, 
+                                 (int(point[0]), int(point[1])), 
+                                 self.path_width // 2)
+            
+    def get_point_at_index(self, index):
+        """Получить точку пути по индексу"""
+        if 0 <= index < len(self.points):
+            return self.points[index]
+        return self.points[-1]  # Последняя точка - конец пути
+    
+    def get_total_points(self):
+        """Получить количество точек на пути"""
+        return len(self.points)
+
+
+def create_default_path():
+    """Создать стандартный лабиринт-путь"""
+    return Path([
+        (50, 200),      
+        (300, 200),     
+        (300, 450),    
+        (600, 450),   
+        (600, 100),     
+        (900, 100),     
+        (900, 600),     
+        (1200, 600),    
+        (1200, 300),   
+        (1350, 300),])
+
 class GameManager:
     """Класс для управления состоянием игры (волны, деньги, статистика)"""
     def __init__(self):
@@ -22,7 +68,7 @@ class GameManager:
         self.wave_timer += 1
 
     def is_wave_ready(self):
-        """Проверить, пора ли начинать новую волну (сложная функция - логика волн)"""
+        """Проверить, пора ли начинать новую волну"""
         return self.wave_timer >= self.wave_cooldown and self.spawned_this_wave >= self.enemies_in_wave
 
     def next_wave(self):
@@ -44,7 +90,7 @@ class GameManager:
         self.kills += 1
 
     def calculate_wave_efficiency(self):
-        """Вычислить эффективность волны (сложная функция - алгоритм оценки производительности)"""
+        """Вычислить эффективность волны"""
         if self.enemies_in_wave == 0:
             return 0.0
 
@@ -66,24 +112,48 @@ class GameManager:
 
 class Enemy:
     """Класс для представления врага"""
-    def __init__(self, x=0, y=None):
-        self.x = x
-        self.y = y if y is not None else random.randint(100, HEIGHT - 100)
-        self.speed = random.randint(2, 5)
+    def __init__(self, path):
+        self.path = path
+        self.path_index = 0  # Индекс текущей точки пути
+        self.x, self.y = path.get_point_at_index(0)  # Начальная позиция
+        self.speed = random.randint(2, 4)
         self.hp = 100
         self.radius = 15
+        self.progress = 0  # Прогресс между текущей и следующей точкой (0-1)
 
     def update(self):
-        self.x += self.speed
+        """Обновить позицию врага вдоль пути"""
+        if self.path_index < self.path.get_total_points() - 1:
+            current_point = self.path.get_point_at_index(self.path_index)
+            next_point = self.path.get_point_at_index(self.path_index + 1)
+            
+            # Вычисляем расстояние между точками
+            dx = next_point[0] - current_point[0]
+            dy = next_point[1] - current_point[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            
+            if distance > 0:
+                # Движемся по пути
+                self.progress += self.speed / distance
+                
+                if self.progress >= 1.0:
+                    # Переходим на следующую точку пути
+                    self.path_index += 1
+                    self.progress = 0
+                else:
+                    # Интерполируем позицию между двумя точками
+                    self.x = current_point[0] + dx * self.progress
+                    self.y = current_point[1] + dy * self.progress
 
     def draw(self, screen):
-        pygame.draw.circle(screen, RED, (self.x, self.y), self.radius)
+        pygame.draw.circle(screen, (200, 0, 0), (int(self.x), int(self.y)), self.radius)
 
     def is_out_of_bounds(self):
-        return self.x >= WIDTH - 60
+        """Враг достиг конца пути"""
+        return self.path_index >= self.path.get_total_points() - 1
 
     def get_distance_to(self, other_x, other_y):
-        """Вычислить расстояние до точки (сложная функция)"""
+        """Вычислить расстояние до точки"""
         return ((self.x - other_x) ** 2 + (self.y - other_y) ** 2) ** 0.5
 
 
@@ -208,6 +278,9 @@ def game_loop():
     font = pygame.font.Font(None, 24)
     font_large = pygame.font.Font(None, 72)
 
+    # Создаём тропинку
+    path = create_default_path()
+    
     enemies = []
     projectiles = []
     tower = Tower(WIDTH - 60, HEIGHT // 2)
@@ -224,7 +297,7 @@ def game_loop():
             # Пробел - ручной спавн врага (для тестирования)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    enemies.append(Enemy())
+                    enemies.append(Enemy(path))
                 # E - начать новую волну вручную
                 if event.key == pygame.K_e:
                     game_manager.next_wave()
@@ -246,7 +319,7 @@ def game_loop():
         if not game_manager.game_over:
             if auto_spawn and game_manager.spawned_this_wave < game_manager.enemies_in_wave:
                 if game_manager.wave_timer % 30 == 0:  # Спавн каждые 0.5 сек
-                    enemies.append(Enemy())
+                    enemies.append(Enemy(path))
                     game_manager.spawn_enemy_this_wave()
 
             if auto_spawn and game_manager.is_wave_ready():
@@ -283,6 +356,9 @@ def game_loop():
                             game_manager.add_money(50) 
 
         screen.fill(BLACK)
+        
+        # Рисуем тропинку
+        path.draw(screen)
         
         draw_enemies(screen, enemies)
         tower.draw(screen)

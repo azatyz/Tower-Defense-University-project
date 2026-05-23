@@ -1,8 +1,8 @@
 import pygame
 
 # Настройки экрана
-WIDTH = 800
-HEIGHT = 600
+WIDTH = 1400
+HEIGHT = 900
 FPS = 60
 
 # Цвета (RGB)
