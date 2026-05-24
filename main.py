@@ -1,86 +1,23 @@
 import pygame
 import sys
 import random
+
+from path import create_default_path
 from settings import *
 
-
-class Path:
-    """Класс для управления тропинкой"""
-    def __init__(self, points):
-        self.points = points
-        self.path_width = 60  # Ширина тропинки
-        self.path_color = (80, 80, 80)  # Цвет дорожки
-        
-    def draw(self, screen):
-        """Нарисовать тропинку на экране"""
-        if len(self.points) > 1:
-            # Рисуем линию между каждыми двумя точками
-            for i in range(len(self.points) - 1):
-                start = (int(self.points[i][0]), int(self.points[i][1]))
-                end = (int(self.points[i + 1][0]), int(self.points[i + 1][1]))
-                pygame.draw.line(screen, self.path_color, start, end, self.path_width)
-            
-            for point in self.points:
-                pygame.draw.circle(screen, self.path_color, 
-                                 (int(point[0]), int(point[1])), 
-                                 self.path_width // 2)
-            
-    def get_point_at_index(self, index):
-        """Получить точку пути по индексу"""
-        if 0 <= index < len(self.points):
-            return self.points[index]
-        return self.points[-1]  # Последняя точка - конец пути
-    
-    def get_total_points(self):
-        """Получить количество точек на пути"""
-        return len(self.points)
-
-    def is_position_on_path(self, x, y, tower_radius):
-        """Проверка: слишком близко к дороге для постройки башни."""
-        min_clearance = tower_radius + self.path_width / 2 + 8
-        for i in range(len(self.points) - 1):
-            x1, y1 = self.points[i]
-            x2, y2 = self.points[i + 1]
-            distance = self._distance_to_segment(x, y, x1, y1, x2, y2)
-            if distance < min_clearance:
-                return True
-        return False
-
-    @staticmethod
-    def _distance_to_segment(x, y, x1, y1, x2, y2):
-        """Расстояние от точки до отрезка (алгоритм проекции на отрезок)."""
-        dx = x2 - x1
-        dy = y2 - y1
-        if dx == 0 and dy == 0:
-            return ((x - x1) ** 2 + (y - y1) ** 2) ** 0.5
-        t = max(0, min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)))
-        closest_x = x1 + t * dx
-        closest_y = y1 + t * dy
-        return ((x - closest_x) ** 2 + (y - closest_y) ** 2) ** 0.5
-
-
-def create_default_path():
-    """Создать стандартный лабиринт-путь"""
-    return Path([
-        (50, 200),      
-        (300, 200),     
-        (300, 450),    
-        (600, 450),   
-        (600, 100),     
-        (900, 100),     
-        (900, 600),     
-        (1200, 600),    
-        (1200, 300),   
-        (1350, 300),])
 
 class GameManager:
     """Класс для управления состоянием игры (волны, деньги, статистика)"""
     def __init__(self):
+        self.reset()
+
+    def reset(self):
+        """Сброс к началу партии."""
         self.money = 200
         self.kills = 0
         self.wave = 1
         self.wave_timer = 0
-        self.wave_cooldown = 120  # Кадры между волнами
+        self.wave_cooldown = 120
         self.enemies_in_wave = 3
         self.spawned_this_wave = 0
         self.game_over = False
@@ -265,7 +202,8 @@ class Projectile:
     def get_distance_to(self, other_x, other_y):
         """Вычислить расстояние до точки"""
         return ((self.x - other_x) ** 2 + (self.y - other_y) ** 2) ** 0.5
-base_health = 100
+BASE_HEALTH_START = 100
+base_health = BASE_HEALTH_START
 
 
 class MessageHUD:
@@ -347,10 +285,22 @@ def game_loop():
     projectiles = []
     towers = []
     game_manager = GameManager()
+
+    def restart_game():
+        """Полный перезапуск без выхода из pygame."""
+        nonlocal game_manager
+        global base_health
+        base_health = BASE_HEALTH_START
+        enemies.clear()
+        projectiles.clear()
+        towers.clear()
+        game_manager = GameManager()
+        hud.show("Новая игра! ЛКМ — башня (150$), вне серой дороги.", (200, 220, 100), 200)
+
     hud.show("ЛКМ — поставить башню (150$). Кликай вне серой дороги.", (200, 220, 100), 200)
-    
+
     running = True
-    auto_spawn = True 
+    auto_spawn = True
     
     while running:
         for event in pygame.event.get():
@@ -364,10 +314,9 @@ def game_loop():
                 # E - начать новую волну вручную
                 if event.key == pygame.K_e:
                     game_manager.next_wave()
-                # R - перезагрузить игру
+                # R - перезапуск после поражения
                 if event.key == pygame.K_r and game_manager.game_over:
-                    pygame.quit()
-                    return game_loop()
+                    restart_game()
                 # Q - выход из игры
                 if event.key == pygame.K_q and game_manager.game_over:
                     running = False
@@ -454,7 +403,7 @@ def game_loop():
         screen.blit(text_surface, (10, 10))
         
 
-        hp_text = f"HP базы: {base_health}/100"
+        hp_text = f"HP базы: {base_health}/{BASE_HEALTH_START}"
         hp_surface = font.render(hp_text, True, RED if base_health < 30 else WHITE)
         screen.blit(hp_surface, (10, 40))
 
