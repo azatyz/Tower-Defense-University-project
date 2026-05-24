@@ -203,6 +203,9 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Локальный черновик финальной версии (для пошаговой разработки)
+.plan/
+
 # Ruff stuff:
 .ruff_cache/
 
