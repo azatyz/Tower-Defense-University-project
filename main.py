@@ -2,72 +2,9 @@ import pygame
 import sys
 import random
 
+from game_manager import GameManager
 from path import create_default_path
 from settings import *
-
-
-class GameManager:
-    """Класс для управления состоянием игры (волны, деньги, статистика)"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        """Сброс к началу партии."""
-        self.money = 200
-        self.kills = 0
-        self.wave = 1
-        self.wave_timer = 0
-        self.wave_cooldown = 120
-        self.enemies_in_wave = 3
-        self.spawned_this_wave = 0
-        self.game_over = False
-        self.max_kills_per_wave = 0
-
-    def update(self):
-        """Обновить состояние игры"""
-        self.wave_timer += 1
-
-    def is_wave_ready(self):
-        """Проверить, пора ли начинать новую волну"""
-        return self.wave_timer >= self.wave_cooldown and self.spawned_this_wave >= self.enemies_in_wave
-
-    def next_wave(self):
-        """Перейти на следующую волну"""
-        self.wave += 1
-        self.enemies_in_wave = 3 + self.wave  # Больше врагов с каждой волной
-        self.max_kills_per_wave = self.kills  # Сохраняем максимум убитых
-        self.wave_timer = 0
-        self.spawned_this_wave = 0
-        pass  # сообщение о волне выводится на экран
-
-    def spawn_enemy_this_wave(self):
-        """Отметить спавн врага в текущей волне"""
-        self.spawned_this_wave += 1
-
-    def add_money(self, amount):
-        """Добавить деньги за убитого врага"""
-        self.money += amount
-        self.kills += 1
-
-    def calculate_wave_efficiency(self):
-        """Вычислить эффективность волны"""
-        if self.enemies_in_wave == 0:
-            return 0.0
-
-        killed_this_wave = self.kills - self.max_kills_per_wave
-        efficiency = (killed_this_wave / self.enemies_in_wave) * 100
-        return efficiency
-
-    def is_game_over(self, base_health):
-        """Проверить, проиграл ли игрок"""
-        if base_health <= 0:
-            self.game_over = True
-            return True
-        return False
-
-    def get_info_text(self):
-        """Получить информацию для отображения на экране"""
-        return f"Волна: {self.wave} | Деньги: {self.money} | Убито: {self.kills}"
 
 
 class Enemy:
@@ -202,10 +139,6 @@ class Projectile:
     def get_distance_to(self, other_x, other_y):
         """Вычислить расстояние до точки"""
         return ((self.x - other_x) ** 2 + (self.y - other_y) ** 2) ** 0.5
-BASE_HEALTH_START = 100
-base_health = BASE_HEALTH_START
-
-
 class MessageHUD:
     """Сообщения игроку на экране (без print — совместимо с Windows)."""
 
@@ -253,13 +186,12 @@ def draw_enemies(screen, enemies):
         enemy.draw(screen)
 
 
-def check_collisions(enemies):
-    global base_health
+def check_collisions(enemies, game_manager):
     leaked = False
     out_of_bounds = []
     for enemy in enemies:
         if enemy.is_out_of_bounds():
-            base_health -= 10
+            game_manager.damage_base(10)
             leaked = True
             out_of_bounds.append(enemy)
     for enemy in out_of_bounds:
@@ -269,7 +201,6 @@ def check_collisions(enemies):
 
 def game_loop():
     """ Главный игровой цикл """
-    global base_health
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tower Defense Project")
@@ -289,8 +220,6 @@ def game_loop():
     def restart_game():
         """Полный перезапуск без выхода из pygame."""
         nonlocal game_manager
-        global base_health
-        base_health = BASE_HEALTH_START
         enemies.clear()
         projectiles.clear()
         towers.clear()
@@ -339,10 +268,6 @@ def game_loop():
         hud.update()
 
 
-        if game_manager.is_game_over(base_health):
-            pass
-
-  
         if not game_manager.game_over:
             if auto_spawn and game_manager.spawned_this_wave < game_manager.enemies_in_wave:
                 if game_manager.wave_timer % 30 == 0:  # Спавн каждые 0.5 сек
@@ -354,9 +279,9 @@ def game_loop():
                 hud.show(f"Волна {game_manager.wave}!", WHITE, 90)
 
             move_enemies(enemies)
-            leaked = check_collisions(enemies)
+            leaked = check_collisions(enemies, game_manager)
             if leaked:
-                hud.show(f"База -10 HP! Осталось {base_health}", RED, 90)
+                hud.show(f"База -10 HP! Осталось {game_manager.base_health}", RED, 90)
 
             for tower in towers:
                 tower.update()
@@ -383,7 +308,7 @@ def game_loop():
                         
                         if enemy.hp <= 0:
                             enemies.remove(enemy)
-                            game_manager.add_money(50) 
+                            game_manager.add_money(KILL_REWARD)
 
         screen.fill(BLACK)
         
@@ -403,8 +328,10 @@ def game_loop():
         screen.blit(text_surface, (10, 10))
         
 
-        hp_text = f"HP базы: {base_health}/{BASE_HEALTH_START}"
-        hp_surface = font.render(hp_text, True, RED if base_health < 30 else WHITE)
+        hp_text = f"HP базы: {game_manager.base_health}/{BASE_HEALTH_MAX}"
+        hp_surface = font.render(
+            hp_text, True, RED if game_manager.base_health < 30 else WHITE
+        )
         screen.blit(hp_surface, (10, 40))
 
         build_hint = font.render(
