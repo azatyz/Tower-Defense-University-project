@@ -10,7 +10,7 @@ from settings import (
     WHITE,
     WIDTH,
 )
-from entities import BasicTower, SniperTower, can_place_tower
+from entities import BasicTower, FastTower, SniperTower, can_place_tower
 
 
 class MessageHUD:
@@ -94,6 +94,7 @@ class BuildUI:
         options = [
             (BasicTower, "[1] Basic (120$) — быстрая"),
             (SniperTower, "[2] Sniper (200$) — дальний бой"),
+            (FastTower, "[3] Fast (160$) — быстрострел"),
         ]
         for index, (tower_cls, line) in enumerate(options):
             x = 10 + index * 320

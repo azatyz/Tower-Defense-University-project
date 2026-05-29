@@ -34,11 +34,12 @@ class Enemy(GameObject):
         self.path = path
         self.path_index = 0
         self.x, self.y = path.get_point_at_index(0)
-        self.speed = random.randint(2, 4)
+        self.speed = 3
         self.hp = 100
         self.max_hp = self.hp
         self.reward = 50
         self.radius = 15
+        self.color = RED
         self.progress = 0
 
     def update(self):
@@ -61,7 +62,7 @@ class Enemy(GameObject):
             self.y = current_point[1] + dy * self.progress
 
     def draw(self, screen):
-        pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
         bar_w = 36
         bar_h = 6
         ratio = 0.0 if self.max_hp <= 0 else max(0.0, min(1.0, self.hp / self.max_hp))
@@ -143,6 +144,15 @@ class SniperTower(Tower):
     cooldown_max = 60
 
 
+class FastTower(Tower):
+    cost = 160
+    kind_name = "Fast"
+    color = YELLOW
+    range = 130
+    damage = 15
+    cooldown_max = 15
+
+
 class Projectile(GameObject):
     """Класс для представления снаряда."""
 
@@ -191,6 +201,7 @@ class Projectile(GameObject):
 TOWER_TYPES = {
     pygame.K_1: BasicTower,
     pygame.K_2: SniperTower,
+    pygame.K_3: FastTower,
 }
 
 
@@ -204,8 +215,36 @@ def can_place_tower(x, y, path, towers):
     return True, ""
 
 
+class FastEnemy(Enemy):
+    def __init__(self, path):
+        super().__init__(path)
+        self.speed = 6
+        self.hp = 70
+        self.max_hp = self.hp
+        self.reward = 40
+        self.radius = 12
+        self.color = YELLOW
+
+
+class TankEnemy(Enemy):
+    def __init__(self, path):
+        super().__init__(path)
+        self.speed = 2
+        self.hp = 180
+        self.max_hp = self.hp
+        self.reward = 80
+        self.radius = 20
+        self.color = (180, 40, 40)
+
+
 def create_enemy_for_wave(path, wave):
-    enemy = Enemy(path)
+    if wave % 5 == 0:
+        enemy = TankEnemy(path)
+    elif random.random() < min(0.25 + wave * 0.02, 0.5):
+        enemy = FastEnemy(path)
+    else:
+        enemy = Enemy(path)
+
     enemy.hp += wave * 5
     enemy.max_hp = enemy.hp
     enemy.speed += wave // 3
