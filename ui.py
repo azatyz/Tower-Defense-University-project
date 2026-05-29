@@ -100,3 +100,47 @@ class BuildUI:
             x = 10 + index * 320
             color = (255, 255, 100) if selected_class is tower_cls else WHITE
             screen.blit(self.font.render(line, True, color), (x, y))
+
+
+class PauseMenu:
+    """Меню паузы с кнопками Resume, Restart, Quit."""
+
+    def __init__(self, font):
+        self.font = font
+        self.buttons = {}
+
+    def draw(self, screen):
+        overlay = pygame.Surface((WIDTH, HEIGHT))
+        overlay.set_alpha(180)
+        overlay.fill(BLACK)
+        screen.blit(overlay, (0, 0))
+
+        title = self.font.render("PAUSED", True, WHITE)
+        title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 120))
+        screen.blit(title, title_rect)
+
+        options = [
+            ("Resume", "Esc", (WIDTH // 2, HEIGHT // 2 - 20)),
+            ("Restart", "R", (WIDTH // 2, HEIGHT // 2 + 50)),
+            ("Quit", "Q", (WIDTH // 2, HEIGHT // 2 + 120)),
+        ]
+        self.buttons = {}
+
+        for text, key_text, center in options:
+            rect = pygame.Rect(0, 0, 260, 40)
+            rect.center = center
+            pygame.draw.rect(screen, WHITE, rect, border_radius=8)
+            pygame.draw.rect(screen, BLACK, rect.inflate(-6, -6), border_radius=8)
+            label = self.font.render(f"{text} ({key_text})", True, WHITE)
+            screen.blit(label, label.get_rect(center=rect.center))
+            self.buttons[text.lower()] = rect
+
+        hint = self.font.render("Click button or press Esc to resume", True, WHITE)
+        hint_rect = hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 190))
+        screen.blit(hint, hint_rect)
+
+    def handle_click(self, pos):
+        for action_name, rect in self.buttons.items():
+            if rect.collidepoint(pos):
+                return action_name
+        return None

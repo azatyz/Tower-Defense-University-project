@@ -13,7 +13,7 @@ from entities import (
 from game_manager import GameManager
 from path import create_default_path
 from settings import BASE_HEALTH_MAX, BLACK, FPS, HEIGHT, RED, WHITE, WIDTH
-from ui import BuildUI, MessageHUD
+from ui import BuildUI, MessageHUD, PauseMenu
 
 
 class Game:
@@ -28,6 +28,7 @@ class Game:
         self.font_large = pygame.font.SysFont("arial", 72)
         self.hud = MessageHUD(self.font)
         self.build_ui = BuildUI(self.font)
+        self.pause_menu = PauseMenu(self.font)
         self.reset()
 
     def reset(self):
@@ -39,12 +40,12 @@ class Game:
         self.auto_spawn = True
         self.paused = False
         self.build_ui.set_tower_type(BasicTower)
-        self.hud.show("Клавиши 1/2 — тип башни. ЛКМ — построить", (200, 220, 100), 240)
+        self.hud.show("Клавиши 1/2/3 — тип башни. Esc — пауза", (200, 220, 100), 240)
 
     def try_build_tower(self, pos):
         tower_cls = self.build_ui.selected_class
         if tower_cls is None:
-            self.hud.show("Сначала выбери башню (1 или 2)", RED)
+            self.hud.show("Сначала выбери башню (1, 2 или 3)", RED)
             return
 
         mx, my = pos
@@ -75,8 +76,9 @@ class Game:
                     self.build_ui.set_tower_type(TOWER_TYPES[event.key])
                     name = TOWER_TYPES[event.key].kind_name
                     self.hud.show(f"Выбрана: {name}", WHITE, 90)
-                if event.key == pygame.K_SPACE and not self.paused:
-                    self.enemies.append(create_enemy_for_wave(self.path, self.manager.wave))
+                # TODO: временно отключен спавн тестового врага по пробелу
+                # if event.key == pygame.K_SPACE and not self.paused:
+                #     self.enemies.append(create_enemy_for_wave(self.path, self.manager.wave))
                 if event.key == pygame.K_e and not self.paused:
                     self.manager.next_wave()
                     self.hud.show(f"Волна {self.manager.wave}!", WHITE, 90)
@@ -88,7 +90,13 @@ class Game:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     if self.paused and not self.manager.game_over:
-                        if self.handle_pause_click(event.pos):
+                        action = self.pause_menu.handle_click(event.pos)
+                        if action == "resume":
+                            self.paused = False
+                            self.hud.show("RESUME", WHITE, 90)
+                        elif action == "restart":
+                            self.reset()
+                        elif action == "quit":
                             return False
                     elif not self.paused and not self.manager.game_over:
                         self.try_build_tower(event.pos)
@@ -182,7 +190,7 @@ class Game:
         self.hud.draw(self.screen)
 
         if self.paused and not self.manager.game_over:
-            self.draw_pause_menu()
+            self.pause_menu.draw(self.screen)
 
         if self.manager.game_over:
             overlay = pygame.Surface((WIDTH, HEIGHT))
@@ -201,47 +209,6 @@ class Game:
             hint = self.font.render("R — заново | Q — выход", True, WHITE)
             self.screen.blit(hint, hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 90)))
 
-    def draw_pause_menu(self):
-        overlay = pygame.Surface((WIDTH, HEIGHT))
-        overlay.set_alpha(180)
-        overlay.fill(BLACK)
-        self.screen.blit(overlay, (0, 0))
-
-        title = self.font_large.render("PAUSED", True, WHITE)
-        self.screen.blit(title, title.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 120)))
-
-        buttons = [
-            ("Resume", "Esc", (WIDTH // 2, HEIGHT // 2 - 20)),
-            ("Restart", "R", (WIDTH // 2, HEIGHT // 2 + 50)),
-            ("Quit", "Q", (WIDTH // 2, HEIGHT // 2 + 120)),
-        ]
-        self.pause_buttons = {}
-
-        for text, key_text, center in buttons:
-            rect = pygame.Rect(0, 0, 260, 40)
-            rect.center = center
-            pygame.draw.rect(self.screen, WHITE, rect, border_radius=8)
-            pygame.draw.rect(self.screen, BLACK, rect.inflate(-6, -6), border_radius=8)
-            label = self.font.render(f"{text} ({key_text})", True, WHITE)
-            self.screen.blit(label, label.get_rect(center=rect.center))
-            self.pause_buttons[text.lower()] = rect
-
-        hint = self.font.render("Нажми Esc для продолжения", True, WHITE)
-        self.screen.blit(hint, hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 190)))
-
-    def handle_pause_click(self, pos):
-        if not hasattr(self, "pause_buttons"):
-            return False
-        if self.pause_buttons["resume"].collidepoint(pos):
-            self.paused = False
-            self.hud.show("RESUME", WHITE, 90)
-            return False
-        if self.pause_buttons["restart"].collidepoint(pos):
-            self.reset()
-            return False
-        if self.pause_buttons["quit"].collidepoint(pos):
-            return True
-        return False
 
     def run(self):
         running = True
