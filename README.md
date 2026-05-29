@@ -1,2 +1,30 @@
 # Tower-Defense-University-project
-University project: Tower Defense game using Python and Pygame.
+
+Игра на **Python + Pygame** для университетского проекта: Tower Defense с волнами врагов, экономикой и разными типами башен.
+
+## Запуск
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+## Управление
+
+- `1` — выбрать Basic Tower
+- `2` — выбрать Sniper Tower
+- ЛКМ — построить выбранную башню (вне дороги)
+- `Пробел` — спавн тестового врага
+- `E` — следующая волна
+- `R` — рестарт после Game Over
+- `Q` — выход после Game Over
+
+## Структура проекта
+
+- `main.py` — главный игровой цикл, класс `Game`
+- `entities.py` — враги, башни, снаряды, утилиты
+- `game_manager.py` — состояние игры: волны, деньги, HP
+- `path.py` — путь врагов и проверка постройки
+- `ui.py` — визуальные подсказки и превью строительства
+- `settings.py` — константы и цвета
+- `requirements.txt` — зависимости

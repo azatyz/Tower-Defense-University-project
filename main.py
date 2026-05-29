@@ -1,227 +1,208 @@
-import pygame
 import sys
 
-from entities import Enemy, Projectile, Tower
+import pygame
+
+from entities import (
+    BasicTower,
+    Projectile,
+    SniperTower,
+    TOWER_TYPES,
+    can_place_tower,
+    create_enemy_for_wave,
+)
 from game_manager import GameManager
 from path import create_default_path
-from settings import *
+from settings import BASE_HEALTH_MAX, BLACK, FPS, HEIGHT, RED, WHITE, WIDTH
+from ui import BuildUI, MessageHUD
 
 
-class MessageHUD:
-    """Сообщения игроку на экране (без print — совместимо с Windows)."""
+class Game:
+    """Главный класс: связывает систему игры и UI."""
 
-    def __init__(self, font):
-        self.font = font
-        self.text = ""
-        self.timer = 0
-        self.color = WHITE
+    def __init__(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        pygame.display.set_caption("Tower Defense — University Project")
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.SysFont("arial", 22)
+        self.font_large = pygame.font.SysFont("arial", 72)
+        self.hud = MessageHUD(self.font)
+        self.build_ui = BuildUI(self.font)
+        self.reset()
 
-    def show(self, text, color=WHITE, duration=120):
-        self.text = text
-        self.color = color
-        self.timer = duration
+    def reset(self):
+        self.path = create_default_path()
+        self.manager = GameManager()
+        self.enemies = []
+        self.projectiles = []
+        self.towers = []
+        self.auto_spawn = True
+        self.build_ui.set_tower_type(BasicTower)
+        self.hud.show("Клавиши 1/2 — тип башни. ЛКМ — построить", (200, 220, 100), 240)
 
-    def update(self):
-        if self.timer > 0:
-            self.timer -= 1
-
-    def draw(self, screen):
-        if self.timer <= 0 or not self.text:
+    def try_build_tower(self, pos):
+        tower_cls = self.build_ui.selected_class
+        if tower_cls is None:
+            self.hud.show("Сначала выбери башню (1 или 2)", RED)
             return
-        surface = self.font.render(self.text, True, self.color)
-        rect = surface.get_rect(center=(WIDTH // 2, HEIGHT - 50))
-        pygame.draw.rect(screen, (30, 30, 30), rect.inflate(20, 10))
-        screen.blit(surface, rect)
 
+        mx, my = pos
+        cost = tower_cls(mx, my).cost
+        if self.manager.money < cost:
+            self.hud.show(f"Мало денег! Нужно {cost}$, есть {self.manager.money}", RED)
+            return
 
-def can_place_tower(x, y, path, towers):
-    if path.is_position_on_path(x, y, TOWER_PLACEMENT_RADIUS):
-        return False, "Нельзя строить на дороге"
-    for tower in towers:
-        dist = ((x - tower.x) ** 2 + (y - tower.y) ** 2) ** 0.5
-        if dist < MIN_TOWER_DISTANCE:
-            return False, "Слишком близко к башне"
-    return True, ""
+        ok, reason = can_place_tower(mx, my, self.path, self.towers)
+        if not ok:
+            self.hud.show(reason, RED)
+            return
 
+        self.towers.append(tower_cls(mx, my))
+        self.manager.money -= cost
+        self.hud.show(f"Башня {tower_cls.kind_name} построена!", (100, 255, 100))
 
-def move_enemies(enemies):
-    for enemy in enemies:
-        enemy.update()
-
-
-def draw_enemies(screen, enemies):
-    for enemy in enemies:
-        enemy.draw(screen)
-
-
-def check_collisions(enemies, game_manager):
-    leaked = False
-    out_of_bounds = []
-    for enemy in enemies:
-        if enemy.is_out_of_bounds():
-            game_manager.damage_base(10)
-            leaked = True
-            out_of_bounds.append(enemy)
-    for enemy in out_of_bounds:
-        enemies.remove(enemy)
-    return leaked
-
-
-def game_loop():
-    """ Главный игровой цикл """
-    pygame.init()
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Tower Defense Project")
-    clock = pygame.time.Clock()
-    font = pygame.font.SysFont("arial", 22)
-    font_large = pygame.font.SysFont("arial", 72)
-    hud = MessageHUD(font)
-
-    path = create_default_path()
-
-    enemies = []
-    projectiles = []
-    towers = []
-    game_manager = GameManager()
-
-    def restart_game():
-        """Полный перезапуск без выхода из pygame."""
-        nonlocal game_manager
-        enemies.clear()
-        projectiles.clear()
-        towers.clear()
-        game_manager = GameManager()
-        hud.show("Новая игра! ЛКМ — башня (150$), вне серой дороги.", (200, 220, 100), 200)
-
-    hud.show("ЛКМ — поставить башню (150$). Кликай вне серой дороги.", (200, 220, 100), 200)
-
-    running = True
-    auto_spawn = True
-
-    while running:
+    def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                return False
 
             if event.type == pygame.KEYDOWN:
+                if event.key in TOWER_TYPES:
+                    self.build_ui.set_tower_type(TOWER_TYPES[event.key])
+                    name = TOWER_TYPES[event.key].kind_name
+                    self.hud.show(f"Выбрана: {name}", WHITE, 90)
                 if event.key == pygame.K_SPACE:
-                    enemies.append(Enemy(path))
+                    self.enemies.append(create_enemy_for_wave(self.path, self.manager.wave))
                 if event.key == pygame.K_e:
-                    game_manager.next_wave()
-                if event.key == pygame.K_r and game_manager.game_over:
-                    restart_game()
-                if event.key == pygame.K_q and game_manager.game_over:
-                    running = False
+                    self.manager.next_wave()
+                    self.hud.show(f"Волна {self.manager.wave}!", WHITE, 90)
+                if event.key == pygame.K_r and self.manager.game_over:
+                    self.reset()
+                if event.key == pygame.K_q and self.manager.game_over:
+                    return False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1 and not game_manager.game_over:
-                    mx, my = event.pos
-                    if game_manager.money < TOWER_COST:
-                        hud.show(f"Мало денег! Нужно {TOWER_COST}$", RED)
-                    else:
-                        ok, reason = can_place_tower(mx, my, path, towers)
-                        if ok:
-                            towers.append(Tower(mx, my))
-                            game_manager.money -= TOWER_COST
-                            hud.show("Башня построена!", (100, 255, 100))
-                        else:
-                            hud.show(reason, RED)
+                if event.button == 1 and not self.manager.game_over:
+                    self.try_build_tower(event.pos)
+        return True
 
-        game_manager.update()
-        hud.update()
+    def update_gameplay(self):
+        if self.manager.game_over:
+            return
 
-        if not game_manager.game_over:
-            if auto_spawn and game_manager.spawned_this_wave < game_manager.enemies_in_wave:
-                if game_manager.wave_timer % 30 == 0:
-                    enemies.append(Enemy(path))
-                    game_manager.spawn_enemy_this_wave()
+        if self.auto_spawn and self.manager.spawned_this_wave < self.manager.enemies_in_wave:
+            if self.manager.wave_timer % 30 == 1:
+                self.enemies.append(create_enemy_for_wave(self.path, self.manager.wave))
+                self.manager.register_spawn()
 
-            if auto_spawn and game_manager.is_wave_ready():
-                game_manager.next_wave()
-                hud.show(f"Волна {game_manager.wave}!", WHITE, 90)
+        if self.auto_spawn and self.manager.is_wave_ready():
+            self.manager.next_wave()
+            self.hud.show(f"Волна {self.manager.wave}! Врагов: {self.manager.enemies_in_wave}", WHITE, 120)
 
-            move_enemies(enemies)
-            leaked = check_collisions(enemies, game_manager)
-            if leaked:
-                hud.show(f"База -10 HP! Осталось {game_manager.base_health}", RED, 90)
+        for enemy in self.enemies:
+            enemy.update()
 
-            for tower in towers:
-                tower.update()
-                target = tower.find_target(enemies)
-                if target and tower.can_shoot():
-                    projectiles.append(
-                        Projectile(tower.x, tower.y, target.x, target.y, tower.damage)
-                    )
-                    tower.shoot()
+        leaked = [enemy for enemy in self.enemies if enemy.reached_end()]
+        for enemy in leaked:
+            self.manager.damage_base(10)
+            self.enemies.remove(enemy)
+            self.hud.show(f"База −10 HP! Осталось {self.manager.base_health}", RED, 90)
 
-            for projectile in projectiles[:]:
-                projectile.update()
-                if projectile.is_out_of_bounds():
-                    projectiles.remove(projectile)
+        for tower in self.towers:
+            tower.update()
+            target = tower.find_target(self.enemies)
+            if target and tower.can_shoot():
+                self.projectiles.append(Projectile(tower.x, tower.y, target, tower.damage))
+                tower.shoot()
 
-            for projectile in projectiles[:]:
-                for enemy in enemies[:]:
-                    distance = projectile.get_distance_to(enemy.x, enemy.y)
-                    if distance < enemy.radius + projectile.radius:
-                        enemy.hp -= projectile.damage
-                        if projectile in projectiles:
-                            projectiles.remove(projectile)
-                        if enemy.hp <= 0:
-                            enemies.remove(enemy)
-                            game_manager.add_money(KILL_REWARD)
+        for projectile in self.projectiles[:]:
+            projectile.update()
+            if projectile.is_done():
+                self.projectiles.remove(projectile)
+                continue
 
-        screen.fill(BLACK)
-        path.draw(screen)
-        draw_enemies(screen, enemies)
-        for tower in towers:
-            tower.draw(screen)
-        for projectile in projectiles:
-            projectile.draw(screen)
+            for enemy in self.enemies[:]:
+                if projectile.get_distance_to(enemy.x, enemy.y) < enemy.radius + projectile.radius:
+                    enemy.hp -= projectile.damage
+                    if projectile in self.projectiles:
+                        self.projectiles.remove(projectile)
+                    break
 
-        info_text = game_manager.get_info_text()
-        text_surface = font.render(info_text, True, WHITE)
-        screen.blit(text_surface, (10, 10))
+        for enemy in self.enemies[:]:
+            if enemy.hp <= 0:
+                self.manager.add_kill_reward(enemy.reward)
+                self.enemies.remove(enemy)
 
-        hp_text = f"HP базы: {game_manager.base_health}/{BASE_HEALTH_MAX}"
-        hp_surface = font.render(
-            hp_text, True, RED if game_manager.base_health < 30 else WHITE
+    def draw(self):
+        self.screen.fill(BLACK)
+        self.path.draw(self.screen)
+
+        for tower in self.towers:
+            tower.draw(self.screen)
+        for enemy in self.enemies:
+            enemy.draw(self.screen)
+        for projectile in self.projectiles:
+            projectile.draw(self.screen)
+
+        if not self.manager.game_over:
+            self.build_ui.draw_preview(
+                self.screen,
+                pygame.mouse.get_pos(),
+                self.path,
+                self.towers,
+                self.manager.money,
+                self.manager.game_over,
+            )
+
+        self.screen.blit(self.font.render(self.manager.get_hud_line(), True, WHITE), (10, 10))
+        hp_color = RED if self.manager.base_health < 30 else WHITE
+        self.screen.blit(
+            self.font.render(f"HP базы: {self.manager.base_health}/{BASE_HEALTH_MAX}", True, hp_color),
+            (10, 38),
         )
-        screen.blit(hp_surface, (10, 40))
-
-        build_hint = font.render(
-            f"ЛКМ — башня ({TOWER_COST}$) | Построено: {len(towers)}", True, (200, 200, 100)
+        sel = self.build_ui.selected_class
+        cost = sel(0, 0).cost if sel else 0
+        self.screen.blit(
+            self.font.render(
+                f"Выбрано: {sel.kind_name if sel else '-'} ({cost}$) | ЛКМ — построить",
+                True,
+                (200, 200, 100),
+            ),
+            (10, 66),
         )
-        screen.blit(build_hint, (10, 68))
-        hud.draw(screen)
+        self.build_ui.draw_toolbar(self.screen, sel)
+        self.hud.draw(self.screen)
 
-        if game_manager.game_over:
+        if self.manager.game_over:
             overlay = pygame.Surface((WIDTH, HEIGHT))
             overlay.set_alpha(200)
             overlay.fill(BLACK)
-            screen.blit(overlay, (0, 0))
+            self.screen.blit(overlay, (0, 0))
 
-            game_over_text = font_large.render("GAME OVER", True, RED)
-            text_rect = game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
-            screen.blit(game_over_text, text_rect)
-
-            stats_text = (
-                f"Волны: {game_manager.wave} | Убито: {game_manager.kills} | "
-                f"Деньги: {game_manager.money}"
+            game_over_text = self.font_large.render("GAME OVER", True, RED)
+            self.screen.blit(game_over_text, game_over_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50)))
+            stats = self.font.render(
+                f"Волны: {self.manager.wave} | Убито: {self.manager.kills} | Деньги: {self.manager.money}",
+                True,
+                WHITE,
             )
-            stats_surface = font.render(stats_text, True, WHITE)
-            stats_rect = stats_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
-            screen.blit(stats_surface, stats_rect)
+            self.screen.blit(stats, stats.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 40)))
+            hint = self.font.render("R — заново | Q — выход", True, WHITE)
+            self.screen.blit(hint, hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 90)))
 
-            restart_text = font.render("Нажми R для перезагрузки или Q для выхода", True, WHITE)
-            restart_rect = restart_text.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 100))
-            screen.blit(restart_text, restart_rect)
-
-        pygame.display.flip()
-        clock.tick(FPS)
-
-    pygame.quit()
-    sys.exit()
+    def run(self):
+        running = True
+        while running:
+            running = self.handle_events()
+            self.manager.update()
+            self.update_gameplay()
+            self.hud.update()
+            self.draw()
+            pygame.display.flip()
+            self.clock.tick(FPS)
+        pygame.quit()
+        sys.exit()
 
 
 if __name__ == "__main__":
-    game_loop()
+    Game().run()

@@ -36,10 +36,10 @@ class GameManager:
         self.wave_timer = 0
         self.spawned_this_wave = 0
 
-    def spawn_enemy_this_wave(self):
+    def register_spawn(self):
         self.spawned_this_wave += 1
 
-    def add_money(self, amount):
+    def add_kill_reward(self, amount):
         self.money += amount
         self.kills += 1
 
@@ -55,5 +55,5 @@ class GameManager:
         killed_this_wave = self.kills - self.max_kills_per_wave
         return (killed_this_wave / self.enemies_in_wave) * 100
 
-    def get_info_text(self):
+    def get_hud_line(self):
         return f"Волна: {self.wave} | Деньги: {self.money} | Убито: {self.kills}"

@@ -3,11 +3,20 @@ from abc import ABC, abstractmethod
 
 import pygame
 
-from settings import GREEN, RED, WIDTH, HEIGHT, YELLOW
+from settings import (
+    BLUE,
+    GREEN,
+    MIN_TOWER_DISTANCE,
+    RED,
+    TOWER_PLACEMENT_RADIUS,
+    YELLOW,
+    WIDTH,
+    HEIGHT,
+)
 
 
 class GameObject(ABC):
-    """Базовый класс игровых объектов (полиморфизм: общие update/draw)."""
+    """Базовый класс игровых объектов."""
 
     @abstractmethod
     def update(self):
@@ -28,6 +37,7 @@ class Enemy(GameObject):
         self.speed = random.randint(2, 4)
         self.hp = 100
         self.max_hp = self.hp
+        self.reward = 50
         self.radius = 15
         self.progress = 0
 
@@ -45,12 +55,13 @@ class Enemy(GameObject):
         if self.progress >= 1.0:
             self.path_index += 1
             self.progress = 0
+            self.x, self.y = self.path.get_point_at_index(self.path_index)
         else:
             self.x = current_point[0] + dx * self.progress
             self.y = current_point[1] + dy * self.progress
 
     def draw(self, screen):
-        pygame.draw.circle(screen, (200, 0, 0), (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), self.radius)
         bar_w = 36
         bar_h = 6
         ratio = 0.0 if self.max_hp <= 0 else max(0.0, min(1.0, self.hp / self.max_hp))
@@ -60,7 +71,7 @@ class Enemy(GameObject):
         fill_color = RED if ratio < 0.35 else GREEN
         pygame.draw.rect(screen, fill_color, (bar_x, bar_y, int(bar_w * ratio), bar_h))
 
-    def is_out_of_bounds(self):
+    def reached_end(self):
         return self.path_index >= self.path.get_total_points() - 1
 
     def get_distance_to(self, other_x, other_y):
@@ -68,15 +79,19 @@ class Enemy(GameObject):
 
 
 class Tower(GameObject):
-    """Класс для представления башни."""
+    """Базовый класс башни."""
+
+    cost = 0
+    kind_name = "Tower"
+    color = GREEN
+    range = 150
+    damage = 25
+    cooldown_max = 30
 
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.radius = 150
-        self.damage = 25
         self.cooldown = 0
-        self.cooldown_max = 30
         self.width = 50
         self.height = 100
 
@@ -87,7 +102,7 @@ class Tower(GameObject):
         targets = []
         for enemy in enemies:
             distance = enemy.get_distance_to(self.x, self.y)
-            if distance <= self.radius:
+            if distance <= self.range:
                 targets.append((distance, enemy))
         if targets:
             return min(targets, key=lambda t: t[0])[1]
@@ -104,25 +119,51 @@ class Tower(GameObject):
     def draw(self, screen):
         pygame.draw.rect(
             screen,
-            GREEN,
+            self.color,
             (self.x - self.width // 2, self.y - self.height // 2, self.width, self.height),
         )
-        pygame.draw.circle(screen, (0, 200, 0), (self.x, self.y), self.radius, 1)
+        pygame.draw.circle(screen, self.color, (self.x, self.y), self.range, 1)
+
+
+class BasicTower(Tower):
+    cost = 120
+    kind_name = "Basic"
+    color = GREEN
+    range = 150
+    damage = 20
+    cooldown_max = 25
+
+
+class SniperTower(Tower):
+    cost = 200
+    kind_name = "Sniper"
+    color = BLUE
+    range = 240
+    damage = 50
+    cooldown_max = 60
 
 
 class Projectile(GameObject):
     """Класс для представления снаряда."""
 
-    def __init__(self, start_x, start_y, target_x, target_y, damage):
+    def __init__(self, start_x, start_y, target, damage):
         self.x = start_x
         self.y = start_y
-        self.target_x = target_x
-        self.target_y = target_y
+        self.target = target
         self.damage = damage
-        self.speed = 8
+        self.speed = 10
         self.radius = 5
-        dx = target_x - start_x
-        dy = target_y - start_y
+        self.vx = 0
+        self.vy = 0
+        self._update_velocity()
+
+    def _update_velocity(self):
+        if self.target is None:
+            self.vx = 0
+            self.vy = 0
+            return
+        dx = self.target.x - self.x
+        dy = self.target.y - self.y
         distance = (dx ** 2 + dy ** 2) ** 0.5
         if distance > 0:
             self.vx = (dx / distance) * self.speed
@@ -132,14 +173,42 @@ class Projectile(GameObject):
             self.vy = 0
 
     def update(self):
+        if self.target is not None:
+            self._update_velocity()
         self.x += self.vx
         self.y += self.vy
 
     def draw(self, screen):
         pygame.draw.circle(screen, YELLOW, (int(self.x), int(self.y)), self.radius)
 
-    def is_out_of_bounds(self):
+    def is_done(self):
         return self.x < 0 or self.x > WIDTH or self.y < 0 or self.y > HEIGHT
 
     def get_distance_to(self, other_x, other_y):
         return ((self.x - other_x) ** 2 + (self.y - other_y) ** 2) ** 0.5
+
+
+TOWER_TYPES = {
+    pygame.K_1: BasicTower,
+    pygame.K_2: SniperTower,
+}
+
+
+def can_place_tower(x, y, path, towers):
+    if path.is_position_on_path(x, y, TOWER_PLACEMENT_RADIUS):
+        return False, "Нельзя строить на дороге"
+    for tower in towers:
+        dist = ((x - tower.x) ** 2 + (y - tower.y) ** 2) ** 0.5
+        if dist < MIN_TOWER_DISTANCE:
+            return False, "Слишком близко к башне"
+    return True, ""
+
+
+def create_enemy_for_wave(path, wave):
+    enemy = Enemy(path)
+    enemy.hp += wave * 5
+    enemy.max_hp = enemy.hp
+    enemy.speed += wave // 3
+    enemy.reward += wave * 2
+    return enemy
+
