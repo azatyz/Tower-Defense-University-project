@@ -11,17 +11,19 @@ class GameManager:
         """Сброс к началу партии."""
         self.money = START_MONEY
         self.kills = 0
-        self.wave = 1
+        self.wave = 0
         self.wave_timer = 0
         self.wave_cooldown = 120
-        self.enemies_in_wave = 3
+        self.enemies_in_wave = 0
         self.spawned_this_wave = 0
         self.game_over = False
         self.max_kills_per_wave = 0
         self.base_health = BASE_HEALTH_MAX
+        self.wave_active = False
 
     def update(self):
-        self.wave_timer += 1
+        if self.wave_active:
+            self.wave_timer += 1
 
     def is_wave_ready(self):
         return (
@@ -35,6 +37,7 @@ class GameManager:
         self.max_kills_per_wave = self.kills
         self.wave_timer = 0
         self.spawned_this_wave = 0
+        self.wave_active = True
 
     def register_spawn(self):
         self.spawned_this_wave += 1

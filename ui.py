@@ -9,6 +9,7 @@ from settings import (
     TOWER_PLACEMENT_RADIUS,
     WHITE,
     WIDTH,
+    YELLOW,
 )
 from entities import BasicTower, FastTower, SniperTower, can_place_tower
 
@@ -100,6 +101,43 @@ class BuildUI:
             x = 10 + index * 320
             color = (255, 255, 100) if selected_class is tower_cls else WHITE
             screen.blit(self.font.render(line, True, color), (x, y))
+
+
+class WaveUI:
+    """Интерфейс для запуска следующей волны и отображения прогресса."""
+
+    def __init__(self, font):
+        self.font = font
+        self.button_rect = pygame.Rect(0, 0, 240, 40)
+
+    def draw(self, screen, manager, enemies):
+        if manager.game_over:
+            return
+
+        status = ""
+        if manager.wave_active:
+            left = len(enemies)
+            status = f"Волна {manager.wave} — осталось врагов: {left}"
+            text_color = WHITE
+        else:
+            status = f"Нажми E или кнопку, чтобы начать волну {manager.wave + 1}"
+            text_color = YELLOW
+
+        status_surf = self.font.render(status, True, text_color)
+        screen.blit(status_surf, (WIDTH - status_surf.get_width() - 20, 18))
+
+        self.button_rect = pygame.Rect(WIDTH - 260, 60, 240, 40)
+        pygame.draw.rect(screen, WHITE, self.button_rect, border_radius=8)
+        button_text = (
+            "Start wave" if not manager.wave_active else "Wave in progress"
+        )
+        button_surf = self.font.render(button_text, True, BLACK if not manager.wave_active else (120, 120, 120))
+        screen.blit(button_surf, button_surf.get_rect(center=self.button_rect.center))
+
+    def handle_click(self, pos, manager):
+        if self.button_rect.collidepoint(pos) and not manager.wave_active:
+            return "next_wave"
+        return None
 
 
 class PauseMenu:

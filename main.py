@@ -13,7 +13,7 @@ from entities import (
 from game_manager import GameManager
 from path import create_default_path
 from settings import BASE_HEALTH_MAX, BLACK, FPS, HEIGHT, RED, WHITE, WIDTH
-from ui import BuildUI, MessageHUD, PauseMenu
+from ui import BuildUI, MessageHUD, PauseMenu, WaveUI
 
 
 class Game:
@@ -29,6 +29,7 @@ class Game:
         self.hud = MessageHUD(self.font)
         self.build_ui = BuildUI(self.font)
         self.pause_menu = PauseMenu(self.font)
+        self.wave_ui = WaveUI(self.font)
         self.reset()
 
     def reset(self):
@@ -37,7 +38,6 @@ class Game:
         self.enemies = []
         self.projectiles = []
         self.towers = []
-        self.auto_spawn = True
         self.paused = False
         self.build_ui.set_tower_type(BasicTower)
         self.hud.show("Клавиши 1/2/3 — тип башни. Esc — пауза", (200, 220, 100), 240)
@@ -80,11 +80,14 @@ class Game:
                 # if event.key == pygame.K_SPACE and not self.paused:
                 #     self.enemies.append(create_enemy_for_wave(self.path, self.manager.wave))
                 if event.key == pygame.K_e and not self.paused:
-                    self.manager.next_wave()
-                    self.hud.show(f"Волна {self.manager.wave}!", WHITE, 90)
+                    if not self.manager.wave_active:
+                        self.manager.next_wave()
+                        self.hud.show(f"Волна {self.manager.wave}!", WHITE, 90)
+                    else:
+                        self.hud.show("Волна уже идёт — дождись завершения", (220, 180, 50), 90)
                 if event.key == pygame.K_r and (self.manager.game_over or self.paused):
                     self.reset()
-                if event.key == pygame.K_q and self.manager.game_over:
+                if event.key == pygame.K_q and (self.manager.game_over or self.paused):
                     return False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -99,21 +102,26 @@ class Game:
                         elif action == "quit":
                             return False
                     elif not self.paused and not self.manager.game_over:
-                        self.try_build_tower(event.pos)
+                        action = self.wave_ui.handle_click(event.pos, self.manager)
+                        if action == "next_wave":
+                            self.manager.next_wave()
+                            self.hud.show(f"Волна {self.manager.wave}!", WHITE, 90)
+                        else:
+                            self.try_build_tower(event.pos)
         return True
 
     def update_gameplay(self):
         if self.manager.game_over or self.paused:
             return
 
-        if self.auto_spawn and self.manager.spawned_this_wave < self.manager.enemies_in_wave:
+        if self.manager.wave_active and self.manager.spawned_this_wave < self.manager.enemies_in_wave:
             if self.manager.wave_timer % 30 == 1:
                 self.enemies.append(create_enemy_for_wave(self.path, self.manager.wave))
                 self.manager.register_spawn()
 
-        if self.auto_spawn and self.manager.is_wave_ready():
-            self.manager.next_wave()
-            self.hud.show(f"Волна {self.manager.wave}! Врагов: {self.manager.enemies_in_wave}", WHITE, 120)
+        if self.manager.wave_active and self.manager.spawned_this_wave >= self.manager.enemies_in_wave and not self.enemies:
+            self.manager.wave_active = False
+            self.hud.show("Волна завершена! Нажми E для следующей.", (100, 220, 100), 180)
 
         for enemy in self.enemies:
             enemy.update()
@@ -133,10 +141,29 @@ class Game:
 
         for projectile in self.projectiles[:]:
             projectile.update()
+
+            # If projectile reached its assigned target, apply damage and remove it.
+            target = projectile.target
+            if target is not None:
+                # If target died meanwhile, discard projectile.
+                if getattr(target, "hp", None) is not None and target.hp <= 0:
+                    if projectile in self.projectiles:
+                        self.projectiles.remove(projectile)
+                    continue
+                # If close enough to the target, apply damage and remove projectile.
+                if projectile.get_distance_to(target.x, target.y) <= (getattr(target, "radius", 0) + projectile.radius):
+                    target.hp -= projectile.damage
+                    if projectile in self.projectiles:
+                        self.projectiles.remove(projectile)
+                    continue
+
+            # If projectile is out of bounds, remove it.
             if projectile.is_done():
-                self.projectiles.remove(projectile)
+                if projectile in self.projectiles:
+                    self.projectiles.remove(projectile)
                 continue
 
+            # Fallback: check collision against any enemy (covers redirected/missing targets).
             for enemy in self.enemies[:]:
                 if projectile.get_distance_to(enemy.x, enemy.y) < enemy.radius + projectile.radius:
                     enemy.hp -= projectile.damage
@@ -187,6 +214,7 @@ class Game:
             (10, 66),
         )
         self.build_ui.draw_toolbar(self.screen, sel)
+        self.wave_ui.draw(self.screen, self.manager, self.enemies)
         self.hud.draw(self.screen)
 
         if self.paused and not self.manager.game_over:
