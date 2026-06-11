@@ -3,6 +3,7 @@ import pygame
 from settings import (
     BLACK,
     HEIGHT,
+    ORANGE,
     PREVIEW_BAD,
     PREVIEW_OK,
     RED,
@@ -11,7 +12,7 @@ from settings import (
     WIDTH,
     YELLOW,
 )
-from entities import BasicTower, FastTower, SniperTower, can_place_tower
+from entities import BasicTower, BombTower, FastTower, SniperTower, can_place_tower
 
 
 class MessageHUD:
@@ -79,6 +80,8 @@ class BuildUI:
             2,
         )
         pygame.draw.circle(screen, tower_preview.color, (mx, my), tower_preview.range, 1)
+        if tower_preview.splash_radius > 0:
+            pygame.draw.circle(screen, ORANGE, (mx, my), tower_preview.splash_radius, 1)
 
         if not can_afford:
             hint = f"Нужно {cost}$, есть {money}"
@@ -93,12 +96,13 @@ class BuildUI:
     def draw_toolbar(self, screen, selected_class):
         y = HEIGHT - 35
         options = [
-            (BasicTower, "[1] Basic (120$) — быстрая"),
-            (SniperTower, "[2] Sniper (200$) — дальний бой"),
-            (FastTower, "[3] Fast (160$) — быстрострел"),
+            (BasicTower, "[1] Basic 120$"),
+            (SniperTower, "[2] Sniper 200$"),
+            (FastTower, "[3] Fast 160$"),
+            (BombTower, "[4] Bomb 230$ AoE"),
         ]
         for index, (tower_cls, line) in enumerate(options):
-            x = 10 + index * 320
+            x = 10 + index * 330
             color = (255, 255, 100) if selected_class is tower_cls else WHITE
             screen.blit(self.font.render(line, True, color), (x, y))
 
@@ -116,7 +120,7 @@ class WaveUI:
 
         status = ""
         if manager.wave_active:
-            left = len(enemies)
+            left = len(enemies) + manager.enemies_in_wave - manager.spawned_this_wave
             status = f"Волна {manager.wave} — осталось врагов: {left}"
             text_color = WHITE
         else:

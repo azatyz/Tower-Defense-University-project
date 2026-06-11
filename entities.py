@@ -6,6 +6,7 @@ import pygame
 from settings import (
     BLUE,
     GREEN,
+    ORANGE,
     MIN_TOWER_DISTANCE,
     RED,
     TOWER_PLACEMENT_RADIUS,
@@ -78,6 +79,54 @@ class Enemy(GameObject):
     def get_distance_to(self, other_x, other_y):
         return ((self.x - other_x) ** 2 + (self.y - other_y) ** 2) ** 0.5
 
+    def path_progress_score(self):
+        return self.path_index + self.progress
+
+
+class TargetStrategy(ABC):
+    """Абстрактная стратегия выбора цели для башни."""
+
+    @abstractmethod
+    def select(self, enemies, tower):
+        pass
+
+    def _targets_in_range(self, enemies, tower):
+        return [
+            enemy
+            for enemy in enemies
+            if enemy.get_distance_to(tower.x, tower.y) <= tower.range
+        ]
+
+
+class NearestTargetStrategy(TargetStrategy):
+    """Выбирает ближайшего врага."""
+
+    def select(self, enemies, tower):
+        targets = self._targets_in_range(enemies, tower)
+        if not targets:
+            return None
+        return min(targets, key=lambda enemy: enemy.get_distance_to(tower.x, tower.y))
+
+
+class StrongestTargetStrategy(TargetStrategy):
+    """Выбирает самого живучего врага в радиусе."""
+
+    def select(self, enemies, tower):
+        targets = self._targets_in_range(enemies, tower)
+        if not targets:
+            return None
+        return max(targets, key=lambda enemy: (enemy.hp, enemy.path_progress_score()))
+
+
+class FirstInPathTargetStrategy(TargetStrategy):
+    """Выбирает врага, который дальше всех прошёл по маршруту."""
+
+    def select(self, enemies, tower):
+        targets = self._targets_in_range(enemies, tower)
+        if not targets:
+            return None
+        return max(targets, key=lambda enemy: enemy.path_progress_score())
+
 
 class Tower(GameObject):
     """Базовый класс башни."""
@@ -88,6 +137,8 @@ class Tower(GameObject):
     range = 150
     damage = 25
     cooldown_max = 30
+    splash_radius = 0
+    target_strategy = NearestTargetStrategy()
 
     def __init__(self, x, y):
         self.x = x
@@ -100,14 +151,7 @@ class Tower(GameObject):
         return self.cooldown <= 0
 
     def find_target(self, enemies):
-        targets = []
-        for enemy in enemies:
-            distance = enemy.get_distance_to(self.x, self.y)
-            if distance <= self.range:
-                targets.append((distance, enemy))
-        if targets:
-            return min(targets, key=lambda t: t[0])[1]
-        return None
+        return self.target_strategy.select(enemies, self)
 
     def update(self):
         if self.cooldown > 0:
@@ -142,6 +186,7 @@ class SniperTower(Tower):
     range = 240
     damage = 50
     cooldown_max = 60
+    target_strategy = StrongestTargetStrategy()
 
 
 class FastTower(Tower):
@@ -153,14 +198,27 @@ class FastTower(Tower):
     cooldown_max = 15
 
 
+class BombTower(Tower):
+    cost = 230
+    kind_name = "Bomb"
+    color = ORANGE
+    range = 180
+    damage = 45
+    cooldown_max = 80
+    splash_radius = 70
+    target_strategy = FirstInPathTargetStrategy()
+
+
 class Projectile(GameObject):
     """Класс для представления снаряда."""
 
-    def __init__(self, start_x, start_y, target, damage):
+    def __init__(self, start_x, start_y, target, damage, splash_radius=0, color=YELLOW):
         self.x = start_x
         self.y = start_y
         self.target = target
         self.damage = damage
+        self.splash_radius = splash_radius
+        self.color = color
         self.speed = 10
         self.radius = 5
         self.vx = 0
@@ -189,7 +247,9 @@ class Projectile(GameObject):
         self.y += self.vy
 
     def draw(self, screen):
-        pygame.draw.circle(screen, YELLOW, (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+        if self.splash_radius > 0:
+            pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius + 3, 1)
 
     def is_done(self):
         return self.x < 0 or self.x > WIDTH or self.y < 0 or self.y > HEIGHT
@@ -202,6 +262,7 @@ TOWER_TYPES = {
     pygame.K_1: BasicTower,
     pygame.K_2: SniperTower,
     pygame.K_3: FastTower,
+    pygame.K_4: BombTower,
 }
 
 

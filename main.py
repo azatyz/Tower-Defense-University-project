@@ -5,7 +5,6 @@ import pygame
 from entities import (
     BasicTower,
     Projectile,
-    SniperTower,
     TOWER_TYPES,
     can_place_tower,
     create_enemy_for_wave,
@@ -40,12 +39,12 @@ class Game:
         self.towers = []
         self.paused = False
         self.build_ui.set_tower_type(BasicTower)
-        self.hud.show("Клавиши 1/2/3 — тип башни. Esc — пауза", (200, 220, 100), 240)
+        self.hud.show("Клавиши 1/2/3/4 — тип башни. Esc — пауза", (200, 220, 100), 240)
 
     def try_build_tower(self, pos):
         tower_cls = self.build_ui.selected_class
         if tower_cls is None:
-            self.hud.show("Сначала выбери башню (1, 2 или 3)", RED)
+            self.hud.show("Сначала выбери башню (1, 2, 3 или 4)", RED)
             return
 
         mx, my = pos
@@ -136,7 +135,16 @@ class Game:
             tower.update()
             target = tower.find_target(self.enemies)
             if target and tower.can_shoot():
-                self.projectiles.append(Projectile(tower.x, tower.y, target, tower.damage))
+                self.projectiles.append(
+                    Projectile(
+                        tower.x,
+                        tower.y,
+                        target,
+                        tower.damage,
+                        tower.splash_radius,
+                        tower.color,
+                    )
+                )
                 tower.shoot()
 
         for projectile in self.projectiles[:]:
@@ -152,7 +160,7 @@ class Game:
                     continue
                 # If close enough to the target, apply damage and remove projectile.
                 if projectile.get_distance_to(target.x, target.y) <= (getattr(target, "radius", 0) + projectile.radius):
-                    target.hp -= projectile.damage
+                    self.apply_projectile_damage(projectile, target.x, target.y, target)
                     if projectile in self.projectiles:
                         self.projectiles.remove(projectile)
                     continue
@@ -166,7 +174,7 @@ class Game:
             # Fallback: check collision against any enemy (covers redirected/missing targets).
             for enemy in self.enemies[:]:
                 if projectile.get_distance_to(enemy.x, enemy.y) < enemy.radius + projectile.radius:
-                    enemy.hp -= projectile.damage
+                    self.apply_projectile_damage(projectile, enemy.x, enemy.y, enemy)
                     if projectile in self.projectiles:
                         self.projectiles.remove(projectile)
                     break
@@ -175,6 +183,19 @@ class Game:
             if enemy.hp <= 0:
                 self.manager.add_kill_reward(enemy.reward)
                 self.enemies.remove(enemy)
+
+    def apply_projectile_damage(self, projectile, hit_x, hit_y, direct_enemy=None):
+        if projectile.splash_radius <= 0:
+            target = direct_enemy or projectile.target
+            if target in self.enemies:
+                target.hp -= projectile.damage
+            return
+
+        for enemy in self.enemies:
+            distance = enemy.get_distance_to(hit_x, hit_y)
+            if distance <= projectile.splash_radius:
+                splash_factor = max(0.35, 1 - distance / projectile.splash_radius)
+                enemy.hp -= max(1, int(projectile.damage * splash_factor))
 
     def draw(self):
         self.screen.fill(BLACK)
