@@ -11,8 +11,8 @@ from entities import (
 )
 from game_manager import GameManager
 from path import create_default_path
-from settings import BASE_HEALTH_MAX, BLACK, FPS, HEIGHT, RED, WHITE, WIDTH
-from ui import BuildUI, MessageHUD, PauseMenu, WaveUI
+from settings import BASE_HEALTH_MAX, BLACK, FPS, HEIGHT, RED, WHITE, WIDTH, YELLOW
+from ui import BuildUI, MessageHUD, PauseMenu, TowerInfoPanel, WaveUI
 
 
 class Game:
@@ -29,6 +29,7 @@ class Game:
         self.build_ui = BuildUI(self.font)
         self.pause_menu = PauseMenu(self.font)
         self.wave_ui = WaveUI(self.font)
+        self.tower_info_panel = TowerInfoPanel(self.font)
         self.reset()
 
     def reset(self):
@@ -37,6 +38,7 @@ class Game:
         self.enemies = []
         self.projectiles = []
         self.towers = []
+        self.selected_tower = None
         self.paused = False
         self.build_ui.set_tower_type(BasicTower)
         self.hud.show("Клавиши 1/2/3/4 — тип башни. Esc — пауза", (200, 220, 100), 240)
@@ -58,9 +60,35 @@ class Game:
             self.hud.show(reason, RED)
             return
 
-        self.towers.append(tower_cls(mx, my))
+        tower = tower_cls(mx, my)
+        self.towers.append(tower)
+        self.selected_tower = tower
         self.manager.money -= cost
         self.hud.show(f"Башня {tower_cls.kind_name} построена!", (100, 255, 100))
+
+    def find_tower_at(self, pos):
+        for tower in reversed(self.towers):
+            if tower.contains_point(pos):
+                return tower
+        return None
+
+    def try_upgrade_selected_tower(self):
+        tower = self.selected_tower
+        if tower is None:
+            self.hud.show("Сначала выбери построенную башню", RED)
+            return
+        if not tower.can_upgrade():
+            self.hud.show(f"{tower.kind_name} уже максимального уровня", YELLOW)
+            return
+
+        cost = tower.get_upgrade_cost()
+        if self.manager.money < cost:
+            self.hud.show(f"На апгрейд нужно {cost}$, есть {self.manager.money}", RED)
+            return
+
+        self.manager.money -= cost
+        tower.upgrade()
+        self.hud.show(f"{tower.kind_name} улучшена до уровня {tower.level}", (100, 255, 100))
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -75,6 +103,8 @@ class Game:
                     self.build_ui.set_tower_type(TOWER_TYPES[event.key])
                     name = TOWER_TYPES[event.key].kind_name
                     self.hud.show(f"Выбрана: {name}", WHITE, 90)
+                if event.key == pygame.K_u and not self.paused and not self.manager.game_over:
+                    self.try_upgrade_selected_tower()
                 # TODO: временно отключен спавн тестового врага по пробелу
                 # if event.key == pygame.K_SPACE and not self.paused:
                 #     self.enemies.append(create_enemy_for_wave(self.path, self.manager.wave))
@@ -101,12 +131,22 @@ class Game:
                         elif action == "quit":
                             return False
                     elif not self.paused and not self.manager.game_over:
+                        action = self.tower_info_panel.handle_click(event.pos)
+                        if action == "upgrade":
+                            self.try_upgrade_selected_tower()
+                            continue
+
                         action = self.wave_ui.handle_click(event.pos, self.manager)
                         if action == "next_wave":
                             self.manager.next_wave()
                             self.hud.show(f"Волна {self.manager.wave}!", WHITE, 90)
                         else:
-                            self.try_build_tower(event.pos)
+                            tower = self.find_tower_at(event.pos)
+                            if tower is not None:
+                                self.selected_tower = tower
+                                self.hud.show(f"Выбрана башня {tower.kind_name} ур. {tower.level}", WHITE, 90)
+                            else:
+                                self.try_build_tower(event.pos)
         return True
 
     def update_gameplay(self):
@@ -203,6 +243,25 @@ class Game:
 
         for tower in self.towers:
             tower.draw(self.screen)
+        if self.selected_tower is not None:
+            pygame.draw.circle(
+                self.screen,
+                YELLOW,
+                (self.selected_tower.x, self.selected_tower.y),
+                self.selected_tower.range,
+                2,
+            )
+            pygame.draw.rect(
+                self.screen,
+                YELLOW,
+                (
+                    self.selected_tower.x - self.selected_tower.width // 2 - 4,
+                    self.selected_tower.y - self.selected_tower.height // 2 - 4,
+                    self.selected_tower.width + 8,
+                    self.selected_tower.height + 8,
+                ),
+                2,
+            )
         for enemy in self.enemies:
             enemy.draw(self.screen)
         for projectile in self.projectiles:
@@ -236,6 +295,7 @@ class Game:
         )
         self.build_ui.draw_toolbar(self.screen, sel)
         self.wave_ui.draw(self.screen, self.manager, self.enemies)
+        self.tower_info_panel.draw(self.screen, self.selected_tower, self.manager.money)
         self.hud.draw(self.screen)
 
         if self.paused and not self.manager.game_over:

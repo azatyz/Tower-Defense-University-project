@@ -144,6 +144,56 @@ class WaveUI:
         return None
 
 
+class TowerInfoPanel:
+    """Панель выбранной башни и кнопка улучшения."""
+
+    def __init__(self, font):
+        self.font = font
+        self.upgrade_rect = pygame.Rect(0, 0, 0, 0)
+
+    def draw(self, screen, tower, money):
+        if tower is None:
+            self.upgrade_rect = pygame.Rect(0, 0, 0, 0)
+            return
+
+        panel_rect = pygame.Rect(WIDTH - 300, HEIGHT - 225, 280, 165)
+        pygame.draw.rect(screen, (25, 25, 25), panel_rect, border_radius=8)
+        pygame.draw.rect(screen, tower.color, panel_rect, 2, border_radius=8)
+
+        lines = [
+            f"{tower.kind_name} Tower | LVL {tower.level}/{tower.max_level}",
+            f"Урон: {tower.damage}",
+            f"Радиус: {tower.range}",
+            f"Перезарядка: {tower.cooldown_max}",
+        ]
+        if tower.splash_radius > 0:
+            lines.append(f"Взрыв: {tower.splash_radius}")
+
+        for index, line in enumerate(lines):
+            color = YELLOW if index == 0 else WHITE
+            screen.blit(self.font.render(line, True, color), (panel_rect.x + 14, panel_rect.y + 12 + index * 24))
+
+        self.upgrade_rect = pygame.Rect(panel_rect.x + 14, panel_rect.bottom - 48, panel_rect.width - 28, 34)
+        can_upgrade = tower.can_upgrade()
+        cost = tower.get_upgrade_cost()
+        can_afford = cost is not None and money >= cost
+        button_color = WHITE if can_upgrade and can_afford else (90, 90, 90)
+        pygame.draw.rect(screen, button_color, self.upgrade_rect, border_radius=6)
+
+        if can_upgrade:
+            label = f"Upgrade: {cost}$  (U)"
+        else:
+            label = "Max level"
+        text_color = BLACK if can_upgrade and can_afford else WHITE
+        label_surf = self.font.render(label, True, text_color)
+        screen.blit(label_surf, label_surf.get_rect(center=self.upgrade_rect.center))
+
+    def handle_click(self, pos):
+        if self.upgrade_rect.collidepoint(pos):
+            return "upgrade"
+        return None
+
+
 class PauseMenu:
     """Меню паузы с кнопками Resume, Restart, Quit."""
 

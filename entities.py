@@ -139,6 +139,7 @@ class Tower(GameObject):
     cooldown_max = 30
     splash_radius = 0
     target_strategy = NearestTargetStrategy()
+    max_level = 3
 
     def __init__(self, x, y):
         self.x = x
@@ -146,6 +147,34 @@ class Tower(GameObject):
         self.cooldown = 0
         self.width = 50
         self.height = 100
+        self.level = 1
+
+    def contains_point(self, pos):
+        px, py = pos
+        return (
+            self.x - self.width // 2 <= px <= self.x + self.width // 2
+            and self.y - self.height // 2 <= py <= self.y + self.height // 2
+        )
+
+    def can_upgrade(self):
+        return self.level < self.max_level
+
+    def get_upgrade_cost(self):
+        if not self.can_upgrade():
+            return None
+        return int(self.cost * (0.75 + self.level * 0.5))
+
+    def upgrade(self):
+        if not self.can_upgrade():
+            return False
+
+        self.level += 1
+        self.damage = int(self.damage * 1.35)
+        self.range = int(self.range * 1.08)
+        self.cooldown_max = max(8, int(self.cooldown_max * 0.9))
+        if self.splash_radius > 0:
+            self.splash_radius = int(self.splash_radius * 1.1)
+        return True
 
     def can_shoot(self):
         return self.cooldown <= 0
