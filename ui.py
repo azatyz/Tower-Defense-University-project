@@ -94,17 +94,29 @@ class BuildUI:
         screen.blit(hint_surf, (mx + 15, my - 60))
 
     def draw_toolbar(self, screen, selected_class):
-        y = HEIGHT - 35
+        panel_height = 60
+        panel_rect = pygame.Rect(0, HEIGHT - panel_height, WIDTH, panel_height)
+        pygame.draw.rect(screen, (20, 20, 20), panel_rect)
+        pygame.draw.line(screen, (80, 80, 80), (0, HEIGHT - panel_height), (WIDTH, HEIGHT - panel_height), 2)
+
         options = [
             (BasicTower, "[1] Basic 120$"),
             (SniperTower, "[2] Sniper 200$"),
             (FastTower, "[3] Fast 160$"),
             (BombTower, "[4] Bomb 230$ AoE"),
         ]
+        
+        segment_width = WIDTH // len(options)
+        
         for index, (tower_cls, line) in enumerate(options):
-            x = 10 + index * 330
-            color = (255, 255, 100) if selected_class is tower_cls else WHITE
-            screen.blit(self.font.render(line, True, color), (x, y))
+            color = YELLOW if selected_class is tower_cls else WHITE
+            text_surf = self.font.render(line, True, color)
+            
+            center_x = (index * segment_width) + (segment_width // 2)
+            center_y = HEIGHT - (panel_height // 2)
+            text_rect = text_surf.get_rect(center=(center_x, center_y))
+            
+            screen.blit(text_surf, text_rect)
 
 
 class WaveUI:
@@ -197,8 +209,9 @@ class TowerInfoPanel:
 class PauseMenu:
     """Меню паузы с кнопками Resume, Restart, Quit."""
 
-    def __init__(self, font):
+    def __init__(self, font, title_font):
         self.font = font
+        self.title_font = title_font
         self.buttons = {}
 
     def draw(self, screen):
@@ -207,7 +220,7 @@ class PauseMenu:
         overlay.fill(BLACK)
         screen.blit(overlay, (0, 0))
 
-        title = self.font.render("PAUSED", True, WHITE)
+        title = self.title_font.render("PAUSED", True, WHITE)
         title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 120))
         screen.blit(title, title_rect)
 
@@ -230,9 +243,3 @@ class PauseMenu:
         hint = self.font.render("Click button or press Esc to resume", True, WHITE)
         hint_rect = hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 190))
         screen.blit(hint, hint_rect)
-
-    def handle_click(self, pos):
-        for action_name, rect in self.buttons.items():
-            if rect.collidepoint(pos):
-                return action_name
-        return None

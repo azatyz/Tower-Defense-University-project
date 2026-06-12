@@ -239,7 +239,7 @@ class BombTower(Tower):
 
 
 class Projectile(GameObject):
-    """Класс для представления снаряда."""
+    """Класс для представления снаряда"""
 
     def __init__(self, start_x, start_y, target, damage, splash_radius=0, color=YELLOW):
         self.x = start_x
@@ -250,28 +250,43 @@ class Projectile(GameObject):
         self.color = color
         self.speed = 10
         self.radius = 5
-        self.vx = 0
-        self.vy = 0
-        self._update_velocity()
-
-    def _update_velocity(self):
-        if self.target is None:
-            self.vx = 0
-            self.vy = 0
-            return
-        dx = self.target.x - self.x
-        dy = self.target.y - self.y
-        distance = (dx ** 2 + dy ** 2) ** 0.5
-        if distance > 0:
-            self.vx = (dx / distance) * self.speed
-            self.vy = (dy / distance) * self.speed
+        
+        #СЛОЖНЫЙ АЛГОРИТМ: Упреждающее прицеливание
+        
+        # 1. Считаем сколько времени понадобится пуле чтобы долететь до текущей позиции врага
+        dist_to_target = ((target.x - start_x) ** 2 + (target.y - start_y) ** 2) ** 0.5
+        time_to_reach = dist_to_target / self.speed
+        
+        # 2. Узнаем вектор скорости врага
+        current_point = target.path.get_point_at_index(target.path_index)
+        next_point = target.path.get_point_at_index(target.path_index + 1)
+        
+        seg_dx = next_point[0] - current_point[0]
+        seg_dy = next_point[1] - current_point[1]
+        seg_dist = (seg_dx ** 2 + seg_dy ** 2) ** 0.5
+        
+        if seg_dist > 0:
+            enemy_vx = (seg_dx / seg_dist) * target.speed
+            enemy_vy = (seg_dy / seg_dist) * target.speed
         else:
-            self.vx = 0
-            self.vy = 0
+            enemy_vx, enemy_vy = 0, 0
+            
+        # 3. Вычисляем точку в будущем, где окажется враг через время time_to_reach
+        future_x = target.x + enemy_vx * time_to_reach
+        future_y = target.y + enemy_vy * time_to_reach
+        
+        # 4. Направляем пулю ровно в эту будущую точку
+        proj_dx = future_x - start_x
+        proj_dy = future_y - start_y
+        proj_dist = (proj_dx ** 2 + proj_dy ** 2) ** 0.5
+        
+        if proj_dist > 0:
+            self.vx = (proj_dx / proj_dist) * self.speed
+            self.vy = (proj_dy / proj_dist) * self.speed
+        else:
+            self.vx, self.vy = 0, 0
 
     def update(self):
-        if self.target is not None:
-            self._update_velocity()
         self.x += self.vx
         self.y += self.vy
 

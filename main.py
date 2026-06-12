@@ -47,7 +47,7 @@ def game_loop():
     build_ui = BuildUI(font)
     wave_ui = WaveUI(font)
     info_panel = TowerInfoPanel(font)
-    pause_menu = PauseMenu(font_large)
+    pause_menu = PauseMenu(font, font_large)
     msg_hud = MessageHUD(font_large)
 
     paused = False
@@ -223,9 +223,14 @@ def game_loop():
         msg_hud.draw(screen)
 
         # Текст HUD
-        screen.blit(font.render(f"HP Базы: {manager.base_health}", True, RED if manager.base_health < 30 else GREEN), (10, 10))
-        screen.blit(font.render(manager.get_hud_line(), True, WHITE), (10, 40))
-        screen.blit(font.render(f"Рекорд: {highscore} волн", True, (200, 200, 200)), (10, 70))
+        hud_bg = pygame.Surface((350, 100))
+        hud_bg.set_alpha(150)
+        hud_bg.fill((0, 0, 0))
+        screen.blit(hud_bg, (5, 5))
+
+        screen.blit(font.render(f"HP Базы: {manager.base_health}", True, RED if manager.base_health < 30 else GREEN), (15, 15))
+        screen.blit(font.render(manager.get_hud_line(), True, WHITE), (15, 45))
+        screen.blit(font.render(f"Рекорд: {highscore} волн", True, (200, 200, 200)), (15, 75))
 
         if paused and not manager.game_over:
             pause_menu.draw(screen)
