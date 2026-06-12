@@ -48,9 +48,11 @@ class TargetStrategyTests(unittest.TestCase):
     def test_bomb_tower_targets_enemy_closest_to_base(self):
         path = create_default_path()
         early_enemy = Enemy(path)
+        
         advanced_enemy = Enemy(path)
-        advanced_enemy.path_index = 3
         advanced_enemy.progress = 0.5
+        advanced_enemy.x = 150 
+        
         tower = BombTower(50, 200)
 
         self.assertIs(tower.find_target([early_enemy, advanced_enemy]), advanced_enemy)
