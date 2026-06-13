@@ -26,6 +26,39 @@ def save_highscore(wave):
         with open("save.json", "w") as f:
             json.dump({"max_wave": wave}, f)
 
+def main_menu():
+    """Стартовое меню перед началом игры."""
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Tower Defense - Main Menu")
+    clock = pygame.time.Clock()
+    
+    font_title = pygame.font.Font(None, 100)
+    font_hint = pygame.font.Font(None, 40)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                return
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                return
+
+        screen.fill((20, 25, 30))
+        
+        title = font_title.render("TOWER DEFENSE", True, GREEN)
+        title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+        screen.blit(title, title_rect)
+        
+        hint = font_hint.render("Нажми ПРОБЕЛ или кликни мышкой, чтобы начать", True, WHITE)
+        hint_rect = hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
+        screen.blit(hint, hint_rect)
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
 def game_loop():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -252,4 +285,5 @@ def game_loop():
     sys.exit()
 
 if __name__ == "__main__":
+    main_menu()
     game_loop()
