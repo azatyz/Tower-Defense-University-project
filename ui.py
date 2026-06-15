@@ -168,7 +168,7 @@ class TowerInfoPanel:
             self.upgrade_rect = pygame.Rect(0, 0, 0, 0)
             return
 
-        panel_rect = pygame.Rect(WIDTH - 300, HEIGHT - 225, 280, 165)
+        panel_rect = pygame.Rect(WIDTH - 300, HEIGHT - 260, 280, 190)
         pygame.draw.rect(screen, (25, 25, 25), panel_rect, border_radius=8)
         pygame.draw.rect(screen, tower.color, panel_rect, 2, border_radius=8)
 

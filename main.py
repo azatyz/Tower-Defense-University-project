@@ -78,7 +78,7 @@ def main_menu():
         # Проверяем, находится ли курсор примерно в зоне текста
         hover_zone = pygame.Rect(WIDTH // 2 - 150, HEIGHT // 2 + 20, 300, 60)
         if hover_zone.collidepoint(mouse_pos):
-            hint_text = "> Начать игру <"
+            hint_text = "Начать игру"
             hint_color = YELLOW
         else:
             hint_text = "Начать игру"
@@ -141,7 +141,7 @@ def game_loop():
                     if event.key in TOWER_TYPES:
                         build_ui.set_tower_type(TOWER_TYPES[event.key])
                         selected_tower = None
-    
+
                     if event.key == pygame.K_u and selected_tower:
                         cost = selected_tower.get_upgrade_cost()
                         if cost and manager.money >= cost:
