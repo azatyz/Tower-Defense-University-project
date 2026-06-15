@@ -159,7 +159,10 @@ def game_loop():
                     if event.key == pygame.K_q:
                         running = False
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            is_mouse_click = (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1)
+            is_space_click = (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
+
+            if is_mouse_click or is_space_click:
                 if paused:
                     action = pause_menu.handle_click(mouse_pos)
                     if action == "resume": paused = False
