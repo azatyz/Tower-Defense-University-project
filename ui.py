@@ -180,6 +180,7 @@ class TowerInfoPanel:
         ]
         if tower.splash_radius > 0:
             lines.append(f"Взрыв: {tower.splash_radius}")
+        lines.append(f"Продать: {tower.cost // 2}$ (Клавиша S)")
 
         for index, line in enumerate(lines):
             color = YELLOW if index == 0 else WHITE

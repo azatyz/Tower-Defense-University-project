@@ -141,14 +141,20 @@ def game_loop():
                     if event.key in TOWER_TYPES:
                         build_ui.set_tower_type(TOWER_TYPES[event.key])
                         selected_tower = None
-                    # Апгрейд (горячая клавиша)
+    
                     if event.key == pygame.K_u and selected_tower:
                         cost = selected_tower.get_upgrade_cost()
                         if cost and manager.money >= cost:
                             manager.money -= cost
                             selected_tower.upgrade()
                             msg_hud.show("Башня улучшена!", GREEN)
-                    # Следующая волна (горячая клавиша)
+                            
+                    if event.key == pygame.K_s and selected_tower:
+                        manager.money += selected_tower.cost // 2 
+                        towers.remove(selected_tower)            
+                        selected_tower = None                     
+                        msg_hud.show("Башня продана!", YELLOW)
+
                     if event.key == pygame.K_e and not manager.wave_active:
                         manager.next_wave()
 
