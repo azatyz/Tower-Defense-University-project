@@ -94,7 +94,7 @@ class TargetStrategy(ABC):
         return [
             enemy
             for enemy in enemies
-            if enemy.get_distance_to(tower.x, tower.y) <= tower.range
+            if enemy.get_distance_to(tower.x, tower.y) <= tower.radar_range
         ]
 
 
@@ -129,7 +129,7 @@ class FirstInPathTargetStrategy(TargetStrategy):
 
 
 class Tower(GameObject):
-    """Базовый класс башни."""
+    """Базовый класс башни с раздельной прокачкой и захватом цели."""
 
     cost = 0
     kind_name = "Tower"
@@ -147,7 +147,14 @@ class Tower(GameObject):
         self.cooldown = 0
         self.width = 50
         self.height = 100
-        self.level = 1
+        
+        self.damage_level = 1
+        self.radar_level = 1
+        
+        self.shoot_range = self.range
+        self.radar_range = int(self.range * 1.25)
+        
+        self.current_target = None
 
     def contains_point(self, pos):
         px, py = pos
@@ -156,31 +163,52 @@ class Tower(GameObject):
             and self.y - self.height // 2 <= py <= self.y + self.height // 2
         )
 
-    def can_upgrade(self):
-        return self.level < self.max_level
+    def can_upgrade_damage(self):
+        return self.damage_level < self.max_level
 
-    def get_upgrade_cost(self):
-        if not self.can_upgrade():
-            return None
-        return int(self.cost * (0.75 + self.level * 0.5))
+    def get_damage_upgrade_cost(self):
+        if not self.can_upgrade_damage(): return None
+        return int(self.cost * (0.5 + self.damage_level * 0.3))
 
-    def upgrade(self):
-        if not self.can_upgrade():
-            return False
+    def upgrade_damage(self):
+        if self.can_upgrade_damage():
+            self.damage_level += 1
+            self.damage = int(self.damage * 1.35)
+            if self.splash_radius > 0:
+                self.splash_radius = int(self.splash_radius * 1.15)
+            return True
+        return False
 
-        self.level += 1
-        self.damage = int(self.damage * 1.35)
-        self.range = int(self.range * 1.08)
-        self.cooldown_max = max(8, int(self.cooldown_max * 0.9))
-        if self.splash_radius > 0:
-            self.splash_radius = int(self.splash_radius * 1.1)
-        return True
+    def can_upgrade_radar(self):
+        return self.radar_level < self.max_level
 
-    def can_shoot(self):
-        return self.cooldown <= 0
+    def get_radar_upgrade_cost(self):
+        if not self.can_upgrade_radar(): return None
+        return int(self.cost * (0.4 + self.radar_level * 0.3))
+
+    def upgrade_radar(self):
+        if self.can_upgrade_radar():
+            self.radar_level += 1
+            self.shoot_range = int(self.shoot_range * 1.15)
+            self.radar_range = int(self.radar_range * 1.15)
+            self.cooldown_max = max(8, int(self.cooldown_max * 0.95))
+            return True
+        return False
 
     def find_target(self, enemies):
-        return self.target_strategy.select(enemies, self)
+        if self.current_target in enemies:
+            dist = self.current_target.get_distance_to(self.x, self.y)
+            if dist <= self.radar_range:
+                return self.current_target
+        
+        self.current_target = self.target_strategy.select(enemies, self)
+        return self.current_target
+
+    def can_shoot(self):
+        if self.cooldown > 0 or not self.current_target:
+            return False
+        dist = self.current_target.get_distance_to(self.x, self.y)
+        return dist <= self.shoot_range
 
     def update(self):
         if self.cooldown > 0:
@@ -196,7 +224,18 @@ class Tower(GameObject):
             self.color,
             (self.x - self.width // 2, self.y - self.height // 2, self.width, self.height),
         )
-        pygame.draw.circle(screen, self.color, (self.x, self.y), self.range, 1)
+        
+        if self.current_target:
+            dist = self.current_target.get_distance_to(self.x, self.y)
+            if dist <= self.radar_range:
+                laser_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                start_pos = (self.x, self.y - 20)
+                end_pos = (int(self.current_target.x), int(self.current_target.y))
+                
+                pygame.draw.line(laser_surf, (*self.color, 90), start_pos, end_pos, 2)
+                if dist <= self.shoot_range:
+                    pygame.draw.circle(laser_surf, RED, end_pos, 4)
+                screen.blit(laser_surf, (0, 0))
 
 
 class BasicTower(Tower):
