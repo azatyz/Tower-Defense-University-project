@@ -175,6 +175,11 @@ def game_loop():
                         return game_loop() # Рестарт
                     if event.key == pygame.K_q:
                         running = False
+            # Сброс выбора (Правая Кнопка Мыши)
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                build_ui.set_tower_type(None) 
+                selected_tower = None         
+                continue
 
             is_mouse_click = (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1)
             is_space_click = (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)
