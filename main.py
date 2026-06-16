@@ -260,8 +260,11 @@ def game_loop():
                         # Урон по площади или одиночный
                         if proj.splash_radius > 0:
                             for e in enemies:
-                                if e.get_distance_to(proj.x, proj.y) <= proj.splash_radius:
-                                    e.hp -= proj.damage
+                                dist_to_explosion = e.get_distance_to(proj.x, proj.y)
+                                if dist_to_explosion <= proj.splash_radius:
+                                    falloff_factor = 1.0 - (dist_to_explosion / proj.splash_radius)   
+                                    actual_damage = max(1, int(proj.damage * falloff_factor))
+                                    e.hp -= actual_damage
                         else:
                             proj.target.hp -= proj.damage
 
