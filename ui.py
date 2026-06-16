@@ -174,10 +174,10 @@ class TowerInfoPanel:
         pygame.draw.rect(screen, (25, 25, 25), panel_rect, border_radius=8)
         pygame.draw.rect(screen, tower.color, panel_rect, 2, border_radius=8)
 
-        dmg_lvl = getattr(tower, 'damage_level', tower.level)
-        rad_lvl = getattr(tower, 'radar_level', tower.level)
-        radar_range = getattr(tower, 'radar_range', tower.range)
-        shoot_range = getattr(tower, 'shoot_range', tower.range)
+        dmg_lvl = tower.damage_level
+        rad_lvl = tower.radar_level
+        radar_range = tower.radar_range
+        shoot_range = tower.shoot_range
         
         lines = [
             f"{tower.kind_name} Tower",
@@ -197,11 +197,11 @@ class TowerInfoPanel:
         self.upg_dmg_rect = pygame.Rect(panel_rect.x + 14, panel_rect.bottom - 80, panel_rect.width - 28, 30)
         self.upg_rad_rect = pygame.Rect(panel_rect.x + 14, panel_rect.bottom - 42, panel_rect.width - 28, 30)
 
-        cost_dmg = getattr(tower, 'get_damage_upgrade_cost', tower.get_upgrade_cost)()
-        cost_rad = getattr(tower, 'get_radar_upgrade_cost', tower.get_upgrade_cost)()
+        cost_dmg = tower.get_damage_upgrade_cost()
+        cost_rad = tower.get_radar_upgrade_cost()
         
-        can_upg_dmg = getattr(tower, 'can_upgrade_damage', tower.can_upgrade)()
-        can_upg_rad = getattr(tower, 'can_upgrade_radar', tower.can_upgrade)()
+        can_upg_dmg = tower.can_upgrade_damage()
+        can_upg_rad = tower.can_upgrade_radar()
 
         # 1. Отрисовка кнопки урона [U]
         color_dmg = WHITE if can_upg_dmg and cost_dmg and money >= cost_dmg else (90, 90, 90)
