@@ -120,7 +120,8 @@ def game_loop():
     msg_hud = MessageHUD(font_large)
 
     paused = False
-    selected_tower = None  # Уже построенная башня, которую мы выбрали для апгрейда
+    selected_tower = None
+    show_radius = True  
     highscore = load_highscore()
 
     running = True
@@ -142,17 +143,27 @@ def game_loop():
                         build_ui.set_tower_type(TOWER_TYPES[event.key])
                         selected_tower = None
 
+                    # Апгрейд урона [U]
                     if event.key == pygame.K_u and selected_tower:
-                        cost = selected_tower.get_upgrade_cost()
+                        cost = selected_tower.get_damage_upgrade_cost()
                         if cost and manager.money >= cost:
                             manager.money -= cost
-                            selected_tower.upgrade()
-                            msg_hud.show("Башня улучшена!", GREEN)
+                            selected_tower.upgrade_damage()
+                            msg_hud.show("Урон увеличен!", GREEN)
+
+                    # Апгрейд радара [F]
+                    if event.key == pygame.K_f and selected_tower:
+                        cost = selected_tower.get_radar_upgrade_cost()
+                        if cost and manager.money >= cost:
+                            manager.money -= cost
+                            selected_tower.upgrade_radar()
+                            msg_hud.show("Радар улучшен!", GREEN)
                             
+                    # Продажа башни [S]
                     if event.key == pygame.K_s and selected_tower:
-                        manager.money += selected_tower.cost // 2 
-                        towers.remove(selected_tower)            
-                        selected_tower = None                     
+                        manager.money += selected_tower.cost // 2
+                        towers.remove(selected_tower)
+                        selected_tower = None
                         msg_hud.show("Башня продана!", YELLOW)
 
                     if event.key == pygame.K_e and not manager.wave_active:
@@ -174,21 +185,32 @@ def game_loop():
                     if action == "resume": paused = False
                     elif action == "restart": return game_loop()
                     elif action == "quit": running = False
+                    elif action == "toggle_radius":         
+                        show_radius = not show_radius       
                     continue
 
                 if manager.game_over:
                     continue
 
-                # Проверка кликов по UI
                 if wave_ui.handle_click(mouse_pos, manager) == "next_wave":
                     manager.next_wave()
                     continue
-                if info_panel.handle_click(mouse_pos) == "upgrade" and selected_tower:
-                    cost = selected_tower.get_upgrade_cost()
+                
+                click_action = info_panel.handle_click(mouse_pos)
+                if click_action == "upgrade_damage" and selected_tower:
+                    cost = selected_tower.get_damage_upgrade_cost()
                     if cost and manager.money >= cost:
                         manager.money -= cost
-                        selected_tower.upgrade()
-                        msg_hud.show("Успешный апгрейд!", GREEN)
+                        selected_tower.upgrade_damage()
+                        msg_hud.show("Урон увеличен!", GREEN)
+                    continue
+                    
+                if click_action == "upgrade_radar" and selected_tower:
+                    cost = selected_tower.get_radar_upgrade_cost()
+                    if cost and manager.money >= cost:
+                        manager.money -= cost
+                        selected_tower.upgrade_radar()
+                        msg_hud.show("Радар улучшен!", GREEN)
                     continue
 
                 # Клик по построенной башне (выбор)
@@ -285,9 +307,14 @@ def game_loop():
 
         path.draw(screen)
         
-        # Радиус выбранной башни (для наглядности)
-        if selected_tower:
-            pygame.draw.circle(screen, (255, 255, 255, 50), (selected_tower.x, selected_tower.y), selected_tower.range, 1)
+        # Отрисовка радиусов выбранной башни
+        if selected_tower and show_radius:
+            pygame.draw.circle(screen, selected_tower.color, (selected_tower.x, selected_tower.y), selected_tower.shoot_range, 2)
+            
+            radar_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            pygame.draw.circle(radar_surf, (*selected_tower.color, 50), (selected_tower.x, selected_tower.y), selected_tower.radar_range, 1)
+            pygame.draw.circle(radar_surf, (*selected_tower.color, 10), (selected_tower.x, selected_tower.y), selected_tower.radar_range, 0)
+            screen.blit(radar_surf, (0, 0))
 
         for tower in towers:
             tower.draw(screen)
@@ -314,7 +341,7 @@ def game_loop():
         screen.blit(font.render(f"Рекорд: {highscore} волн", True, (200, 200, 200)), (15, 75))
 
         if paused and not manager.game_over:
-            pause_menu.draw(screen)
+            pause_menu.draw(screen, show_radius)
 
         if manager.game_over:
             overlay = pygame.Surface((WIDTH, HEIGHT))
