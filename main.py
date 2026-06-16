@@ -133,52 +133,52 @@ def game_loop():
                 running = False
 
             if event.type == pygame.KEYDOWN:
-                # Пауза
+                # 1. Обработка паузы (Первый приоритет)
                 if event.key == pygame.K_ESCAPE:
                     paused = not paused
                 
-                if not paused and not manager.game_over:
-                    # Выбор башни для постройки
+                if paused:
+                    if event.key == pygame.K_t:
+                        show_radius = not show_radius
+                    if event.key == pygame.K_r:
+                        return game_loop()
+                    if event.key == pygame.K_q:
+                        running = False
+                    continue 
+
+                # 2. Управление игрой (Только если не пауза)
+                if not manager.game_over:
                     if event.key in TOWER_TYPES:
                         build_ui.set_tower_type(TOWER_TYPES[event.key])
                         selected_tower = None
-
-                    # Апгрейд урона [U]
                     if event.key == pygame.K_u and selected_tower:
                         cost = selected_tower.get_damage_upgrade_cost()
                         if cost and manager.money >= cost:
                             manager.money -= cost
                             selected_tower.upgrade_damage()
                             msg_hud.show("Урон увеличен!", GREEN)
-
-                    # Апгрейд радара [F]
                     if event.key == pygame.K_f and selected_tower:
                         cost = selected_tower.get_radar_upgrade_cost()
                         if cost and manager.money >= cost:
                             manager.money -= cost
                             selected_tower.upgrade_radar()
                             msg_hud.show("Радар улучшен!", GREEN)
-                            
-                    # Продажа башни [S]
                     if event.key == pygame.K_s and selected_tower:
                         manager.money += selected_tower.cost // 2
                         towers.remove(selected_tower)
                         selected_tower = None
                         msg_hud.show("Башня продана!", YELLOW)
-
                     if event.key == pygame.K_e and not manager.wave_active:
                         manager.next_wave()
 
-                # Управление после проигрыша
                 if manager.game_over:
-                    if event.key == pygame.K_r:
-                        return game_loop() # Рестарт
-                    if event.key == pygame.K_q:
-                        running = False
-            # Сброс выбора (Правая Кнопка Мыши)
+                    if event.key == pygame.K_r: return game_loop()
+                    if event.key == pygame.K_q: running = False
+
+            # 3. КЛИКИ МЫШЬЮ
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-                build_ui.set_tower_type(None) 
-                selected_tower = None         
+                build_ui.set_tower_type(None)
+                selected_tower = None
                 continue
 
             is_mouse_click = (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1)
