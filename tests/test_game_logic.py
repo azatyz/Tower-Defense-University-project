@@ -70,6 +70,22 @@ class GameManagerTests(unittest.TestCase):
         self.assertEqual(manager.spawned_this_wave, 0)
 
 
+class TowerUpgradeTests(unittest.TestCase):
+    def test_radar_upgrade_increases_ranges(self):
+        tower = BasicTower(100, 100)
+        initial_shoot = tower.shoot_range
+        initial_radar = tower.radar_range
+        
+        upgraded = tower.upgrade_radar()
+        
+        self.assertTrue(upgraded)
+        self.assertEqual(tower.radar_level, 2)
+        self.assertGreater(tower.shoot_range, initial_shoot)
+        self.assertGreater(tower.radar_range, initial_radar)
+
+
 if __name__ == "__main__":
     pygame.init()
     unittest.main()
+
+
