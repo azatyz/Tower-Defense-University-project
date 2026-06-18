@@ -16,7 +16,7 @@ from entities import BasicTower, BombTower, FastTower, SniperTower, can_place_to
 
 
 class MessageHUD:
-    """Всплывающие сообщения на экране."""
+    """Всплывающие сообщения на экране"""
 
     def __init__(self, font):
         self.font = font
@@ -37,13 +37,18 @@ class MessageHUD:
         if self.timer <= 0 or not self.text:
             return
         surface = self.font.render(self.text, True, self.color)
-        rect = surface.get_rect(center=(WIDTH // 2, HEIGHT - 50))
-        pygame.draw.rect(screen, (30, 30, 30), rect.inflate(20, 10))
+        
+        rect = surface.get_rect(center=(WIDTH // 2, HEIGHT - 110))
+        
+        padding_x, padding_y = 30, 15
+        bg_surf = pygame.Surface((rect.width + padding_x * 2, rect.height + padding_y * 2), pygame.SRCALPHA)
+        pygame.draw.rect(bg_surf, (0, 0, 0, 180), bg_surf.get_rect(), border_radius=12)
+        
+        screen.blit(bg_surf, (rect.x - padding_x, rect.y - padding_y))
         screen.blit(surface, rect)
 
-
 class BuildUI:
-    """Превью башни под курсором и панель выбора типа."""
+    """Превью башни под курсором и панель выбора типа"""
 
     def __init__(self, font):
         self.font = font
@@ -120,7 +125,7 @@ class BuildUI:
 
 
 class WaveUI:
-    """Интерфейс для запуска следующей волны и отображения прогресса."""
+    """Интерфейс для запуска следующей волны и отображения прогресса"""
 
     def __init__(self, font):
         self.font = font
@@ -157,7 +162,7 @@ class WaveUI:
 
 
 class TowerInfoPanel:
-    """Панель выбранной башни с раздельной прокачкой (Урон и Радар)."""
+    """Панель выбранной башни с раздельной прокачкой"""
 
     def __init__(self, font):
         self.font = font
@@ -228,7 +233,7 @@ class TowerInfoPanel:
 
 
 class PauseMenu:
-    """Меню паузы с кнопками Resume, Toggle Radius, Restart, Quit."""
+    """Меню паузы"""
 
     def __init__(self, font, title_font):
         self.font = font

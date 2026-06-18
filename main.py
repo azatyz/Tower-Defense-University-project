@@ -11,7 +11,7 @@ from ui import BuildUI, WaveUI, TowerInfoPanel, PauseMenu, MessageHUD
 from audio import SoundManager
 
 def load_highscore():
-    """Загрузка максимальной пройденную волны из файла."""
+    """Загрузка максимально пройденной волны"""
     if os.path.exists("save.json"):
         try:
             with open("save.json", "r") as f:
@@ -21,14 +21,14 @@ def load_highscore():
     return 0
 
 def save_highscore(wave):
-    """Сохранение рекорда, если он побит."""
+    """Сохранение рекорда, если он побит"""
     current_max = load_highscore()
     if wave > current_max:
         with open("save.json", "w") as f:
             json.dump({"max_wave": wave}, f)
 
 def main_menu():
-    """Стартовое меню с анимацией и статистикой."""
+    """Стартовое меню с анимацией и статистикой"""
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tower Defense - Main Menu")
@@ -40,7 +40,7 @@ def main_menu():
     font_stats = pygame.font.Font(None, 40)
 
     # Загружаем рекорд, чтобы показать его прямо на старте
-    from main import load_highscore # Убедись, что функция доступна
+    from main import load_highscore
     highscore = load_highscore()
     
     offset = 0  # Переменная для движения фона
@@ -54,13 +54,15 @@ def main_menu():
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 sound_manager.play("click")
+                pygame.time.delay(150)
                 return
             
             if event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_RETURN):
                 sound_manager.play("click")
+                pygame.time.delay(150)
                 return
 
-        # 1. Анимированный фон (Стиль "инженерного чертежа")
+        # 1. Анимированный фон
         screen.fill((20, 25, 30))
         offset = (offset + 0.5) % 50 # Сдвигаем линии каждый кадр
         
@@ -93,7 +95,7 @@ def main_menu():
         hint_rect = hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
         screen.blit(hint, hint_rect)
 
-        # 4. Вывод рекорда (мотивирует побить его)
+        # 4. Вывод рекорда
         stats = font_stats.render(f"Ваш рекорд: {highscore} волн", True, (150, 150, 150))
         stats_rect = stats.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 130))
         screen.blit(stats, stats_rect)
@@ -109,7 +111,7 @@ def game_loop():
     font = pygame.font.Font(None, 28)
     font_large = pygame.font.Font(None, 72)
 
-    # Инициализация объектов из твоей архитектуры
+    # Инициализация объектов из архитектуры
     path = create_default_path()
     manager = GameManager()
     
@@ -139,22 +141,28 @@ def game_loop():
                 running = False
 
             if event.type == pygame.KEYDOWN:
-                # 1. Обработка паузы (Первый приоритет)
+                # 1. Обработка паузы
                 if event.key == pygame.K_ESCAPE:
+                    sound_manager.play("click")
                     paused = not paused
-                
                 if paused:
                     if event.key == pygame.K_t:
+                        sound_manager.play("click")
                         show_radius = not show_radius
                     if event.key == pygame.K_r:
+                        sound_manager.play("click")
+                        pygame.time.delay(100)
                         return game_loop()
                     if event.key == pygame.K_q:
+                        sound_manager.play("click")
+                        pygame.time.delay(200)
                         running = False
                     continue 
 
-                # 2. Управление игрой (Только если не пауза)
+                # 2. Управление игрой
                 if not manager.game_over:
                     if event.key in TOWER_TYPES:
+                        sound_manager.play("click")
                         build_ui.set_tower_type(TOWER_TYPES[event.key])
                         selected_tower = None
                     if event.key == pygame.K_u and selected_tower:
@@ -180,6 +188,7 @@ def game_loop():
                         sound_manager.play("upgrade")
                         msg_hud.show("Башня продана!", YELLOW)
                     if event.key == pygame.K_e and not manager.wave_active:
+                        sound_manager.play("click")
                         manager.next_wave()
 
                 if manager.game_over:
@@ -190,8 +199,9 @@ def game_loop():
                         sound_manager.play("click")
                         running = False
 
-            # 3. КЛИКИ МЫШЬЮ
+            # 3. Клики мышью
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                sound_manager.play("click")
                 build_ui.set_tower_type(None)
                 selected_tower = None
                 continue
@@ -204,6 +214,8 @@ def game_loop():
                     action = pause_menu.handle_click(mouse_pos)
                     if action: 
                         sound_manager.play("click")
+                        if action in  ["restart", "quit"]:
+                            pygame.time.delay(150)
                     if action == "resume": paused = False
                     elif action == "restart": return game_loop()
                     elif action == "quit": running = False
@@ -240,8 +252,9 @@ def game_loop():
                 clicked_on_tower = False
                 for t in towers:
                     if t.contains_point(mouse_pos):
+                        sound_manager.play("click")
                         selected_tower = t
-                        build_ui.set_tower_type(None) # Сбрасываем режим стройки
+                        build_ui.set_tower_type(None)
                         clicked_on_tower = True
                         break
                 
@@ -261,7 +274,7 @@ def game_loop():
                         sound_manager.play("error")
                         msg_hud.show("Недостаточно денег!", RED)
 
-        # --- ОБНОВЛЕНИЕ ЛОГИКИ ---
+        # Обновление логики
         if not paused and not manager.game_over:
             manager.update()
 
@@ -327,7 +340,7 @@ def game_loop():
 
             msg_hud.update()
 
-        # --- ОТРИСОВКА ---
+        # Отрисовка
         # Фоновый цвет
         screen.fill((30, 40, 30)) 
 
@@ -362,7 +375,14 @@ def game_loop():
         hud_bg.fill((0, 0, 0))
         screen.blit(hud_bg, (5, 5))
 
-        screen.blit(font.render(f"HP Базы: {manager.base_health}", True, RED if manager.base_health < 30 else GREEN), (15, 15))
+        if manager.base_health > 60:
+            hp_color = GREEN
+        elif manager.base_health > 30:
+            hp_color = YELLOW
+        else:
+            hp_color = RED
+            
+        screen.blit(font.render(f"HP Базы: {manager.base_health}", True, hp_color), (15, 15))
         screen.blit(font.render(manager.get_hud_line(), True, WHITE), (15, 45))
         screen.blit(font.render(f"Рекорд: {highscore} волн", True, (200, 200, 200)), (15, 75))
 

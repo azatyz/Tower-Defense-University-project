@@ -2,7 +2,7 @@ import pygame
 
 
 class Path:
-    """Класс для управления тропинкой врагов."""
+    """Класс для управления тропинкой врагов"""
 
     def __init__(self, points):
         self.points = points
@@ -10,7 +10,7 @@ class Path:
         self.path_color = (80, 80, 80)
 
     def draw(self, screen):
-        """Отрисовка тропинки на экране."""
+        """Отрисовка тропинки на экране"""
         if len(self.points) < 2:
             return
         for i in range(len(self.points) - 1):
@@ -26,17 +26,17 @@ class Path:
             )
 
     def get_point_at_index(self, index):
-        """Получение точки пути по индексу."""
+        """Получение точки пути по индексу"""
         if 0 <= index < len(self.points):
             return self.points[index]
         return self.points[-1]
 
     def get_total_points(self):
-        """Количество точек на пути."""
+        """Количество точек на пути"""
         return len(self.points)
 
     def is_position_on_path(self, x, y, tower_radius):
-        """Проверка расстояния башни от тропинки."""
+        """Проверка расстояния башни от тропинки"""
         min_clearance = tower_radius + self.path_width / 2 + 8
         for i in range(len(self.points) - 1):
             x1, y1 = self.points[i]
@@ -60,7 +60,7 @@ class Path:
 
 
 def create_default_path():
-    """Лабиринт-путь."""
+    """Лабиринт-путь"""
     return Path([
         (50, 200),
         (300, 200),

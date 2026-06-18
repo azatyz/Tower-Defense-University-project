@@ -3,8 +3,8 @@ import os
 
 class SoundManager:
     """
-    Безопасный менеджер звуков (Паттерн: Graceful Degradation).
-    Перехватывает ошибки загрузки, чтобы игра не вылетала при отсутствии файлов.
+    Безопасный менеджер звуков
+    Перехватывает ошибки загрузки, чтобы игра не вылетала при отсутствии файлов
     """
     def __init__(self):
         try:
@@ -15,7 +15,7 @@ class SoundManager:
 
         self.sounds = {}
         
-        # Пытаемся загрузить звуки (файлы нужно положить в папку assets)
+        # Пытаемся загрузить звуки
         self._load_sound("click", "assets/click.wav")
         self._load_sound("build", "assets/build.wav")
         self._load_sound("error", "assets/error.wav")
@@ -28,7 +28,7 @@ class SoundManager:
         if os.path.exists(path):
             try:
                 sound = pygame.mixer.Sound(path)
-                sound.set_volume(0.3)  # Делаем звуки тихими (30% громкости), чтобы не раздражали
+                sound.set_volume(0.3)  #30% громкости
                 self.sounds[name] = sound
             except Exception:
                 self.sounds[name] = None
@@ -36,6 +36,6 @@ class SoundManager:
             self.sounds[name] = None
 
     def play(self, name):
-        """Безопасное воспроизведение звука по имени."""
+        """Безопасное воспроизведение звука по имени"""
         if self.enabled and name in self.sounds and self.sounds[name]:
             self.sounds[name].play()

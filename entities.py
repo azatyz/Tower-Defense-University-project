@@ -17,7 +17,7 @@ from settings import (
 
 
 class GameObject(ABC):
-    """Базовый класс игровых объектов."""
+    """Базовый класс игровых объектов"""
 
     @abstractmethod
     def update(self):
@@ -29,7 +29,7 @@ class GameObject(ABC):
 
 
 class Enemy(GameObject):
-    """Класс для представления врага."""
+    """Класс для представления врага"""
 
     def __init__(self, path):
         self.path = path
@@ -84,7 +84,7 @@ class Enemy(GameObject):
 
 
 class TargetStrategy(ABC):
-    """Абстрактная стратегия выбора цели для башни."""
+    """Абстрактная стратегия выбора цели для башни"""
 
     @abstractmethod
     def select(self, enemies, tower):
@@ -99,7 +99,7 @@ class TargetStrategy(ABC):
 
 
 class NearestTargetStrategy(TargetStrategy):
-    """Выбирает ближайшего врага."""
+    """Выбирает ближайшего врага"""
 
     def select(self, enemies, tower):
         targets = self._targets_in_range(enemies, tower)
@@ -109,7 +109,7 @@ class NearestTargetStrategy(TargetStrategy):
 
 
 class StrongestTargetStrategy(TargetStrategy):
-    """Выбирает самого живучего врага в радиусе."""
+    """Выбирает самого живучего врага в радиусе"""
 
     def select(self, enemies, tower):
         targets = self._targets_in_range(enemies, tower)
@@ -119,7 +119,7 @@ class StrongestTargetStrategy(TargetStrategy):
 
 
 class FirstInPathTargetStrategy(TargetStrategy):
-    """Выбирает врага, который дальше всех прошёл по маршруту."""
+    """Выбирает врага, который дальше всех прошёл по маршруту"""
 
     def select(self, enemies, tower):
         targets = self._targets_in_range(enemies, tower)
@@ -129,7 +129,7 @@ class FirstInPathTargetStrategy(TargetStrategy):
 
 
 class Tower(GameObject):
-    """Базовый класс башни с раздельной прокачкой и захватом цели."""
+    """Базовый класс башни с раздельной прокачкой и захватом цели"""
 
     cost = 0
     kind_name = "Tower"
@@ -290,7 +290,7 @@ class Projectile(GameObject):
         self.speed = 10
         self.radius = 5
         
-        #СЛОЖНЫЙ АЛГОРИТМ: Упреждающее прицеливание
+        #Упреждающее прицеливание
         
         # 1. Считаем сколько времени понадобится пуле чтобы долететь до текущей позиции врага
         dist_to_target = ((target.x - start_x) ** 2 + (target.y - start_y) ** 2) ** 0.5

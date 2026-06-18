@@ -2,13 +2,13 @@ from settings import BASE_HEALTH_MAX, START_MONEY
 
 
 class GameManager:
-    """Состояние игры: волны, экономика, HP базы."""
+    """Состояние игры: волны, экономика, HP базы"""
 
     def __init__(self):
         self.reset()
 
     def reset(self):
-        """Сброс к началу партии."""
+        """Сброс к началу партии"""
         self.money = START_MONEY
         self.kills = 0
         self.wave = 0
@@ -59,4 +59,4 @@ class GameManager:
         return (killed_this_wave / self.enemies_in_wave) * 100
 
     def get_hud_line(self):
-        return f"Волна: {self.wave} | Деньги: {self.money} | Убито: {self.kills}"
+        return f"Волна: {self.wave} | Деньги: {self.money}$ | Убито: {self.kills}"
