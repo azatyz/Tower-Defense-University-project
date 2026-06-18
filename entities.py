@@ -145,8 +145,8 @@ class Tower(GameObject):
         self.x = x
         self.y = y
         self.cooldown = 0
-        self.width = 50
-        self.height = 100
+        self.width = 40 
+        self.height = 40 
         
         self.damage_level = 1
         self.radar_level = 1
@@ -219,17 +219,21 @@ class Tower(GameObject):
             self.cooldown = self.cooldown_max
 
     def draw(self, screen):
-        pygame.draw.rect(
-            screen,
-            self.color,
-            (self.x - self.width // 2, self.y - self.height // 2, self.width, self.height),
-        )
+        # 1. Основание башни (темно-серый скругленный квадрат)
+        base_rect = (self.x - self.width // 2, self.y - self.height // 2, self.width, self.height)
+        pygame.draw.rect(screen, (40, 40, 40), base_rect, border_radius=8)
+        
+        # 2. Обводка цветом типа башни
+        pygame.draw.rect(screen, self.color, base_rect, 3, border_radius=8)
+        
+        # 3. Башня (кружок в центре)
+        pygame.draw.circle(screen, self.color, (self.x, self.y), 10)
         
         if self.current_target:
             dist = self.current_target.get_distance_to(self.x, self.y)
             if dist <= self.radar_range:
                 laser_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-                start_pos = (self.x, self.y - 20)
+                start_pos = (self.x, self.y) 
                 end_pos = (int(self.current_target.x), int(self.current_target.y))
                 
                 pygame.draw.line(laser_surf, (*self.color, 90), start_pos, end_pos, 2)
@@ -352,10 +356,12 @@ TOWER_TYPES = {
 def can_place_tower(x, y, path, towers):
     if path.is_position_on_path(x, y, TOWER_PLACEMENT_RADIUS):
         return False, "Нельзя строить на дороге"
+        
     for tower in towers:
         dist = ((x - tower.x) ** 2 + (y - tower.y) ** 2) ** 0.5
         if dist < MIN_TOWER_DISTANCE:
             return False, "Слишком близко к башне"
+            
     return True, ""
 
 

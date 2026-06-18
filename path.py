@@ -37,7 +37,7 @@ class Path:
 
     def is_position_on_path(self, x, y, tower_radius):
         """Проверка расстояния башни от тропинки"""
-        min_clearance = tower_radius + self.path_width / 2 + 8
+        min_clearance = tower_radius + self.path_width / 2 + 4
         for i in range(len(self.points) - 1):
             x1, y1 = self.points[i]
             x2, y2 = self.points[i + 1]

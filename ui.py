@@ -78,12 +78,11 @@ class BuildUI:
         screen.blit(surf, (mx - TOWER_PLACEMENT_RADIUS, my - TOWER_PLACEMENT_RADIUS))
 
         tower_preview = self.selected_class(mx, my)
-        pygame.draw.rect(
-            screen,
-            tower_preview.color,
-            (mx - 25, my - 50, 50, 100),
-            2,
-        )
+
+        preview_rect = (mx - 20, my - 20, 40, 40)
+        pygame.draw.rect(screen, (40, 40, 40), preview_rect, border_radius=8)
+        pygame.draw.rect(screen, tower_preview.color, preview_rect, 3, border_radius=8)
+        pygame.draw.circle(screen, tower_preview.color, (mx, my), 10)
         pygame.draw.circle(screen, tower_preview.color, (mx, my), tower_preview.range, 1)
         if tower_preview.splash_radius > 0:
             pygame.draw.circle(screen, ORANGE, (mx, my), tower_preview.splash_radius, 1)
