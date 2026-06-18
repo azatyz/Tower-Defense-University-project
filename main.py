@@ -8,6 +8,7 @@ from path import create_default_path
 from game_manager import GameManager
 from entities import TOWER_TYPES, can_place_tower, create_enemy_for_wave, Projectile
 from ui import BuildUI, WaveUI, TowerInfoPanel, PauseMenu, MessageHUD
+from audio import SoundManager
 
 def load_highscore():
     """Загрузка максимальной пройденную волны из файла."""
@@ -32,6 +33,7 @@ def main_menu():
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tower Defense - Main Menu")
     clock = pygame.time.Clock()
+    sound_manager = SoundManager()
 
     font_title = pygame.font.Font(None, 120)
     font_hint = pygame.font.Font(None, 50)
@@ -51,8 +53,11 @@ def main_menu():
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                return # Начинаем игру по клику
+                sound_manager.play("click")
+                return
+            
             if event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                sound_manager.play("click")
                 return
 
         # 1. Анимированный фон (Стиль "инженерного чертежа")
@@ -118,6 +123,7 @@ def game_loop():
     info_panel = TowerInfoPanel(font)
     pause_menu = PauseMenu(font, font_large)
     msg_hud = MessageHUD(font_large)
+    sound_manager = SoundManager()
 
     paused = False
     selected_tower = None
@@ -156,24 +162,33 @@ def game_loop():
                         if cost and manager.money >= cost:
                             manager.money -= cost
                             selected_tower.upgrade_damage()
+                            sound_manager.play("upgrade")
                             msg_hud.show("Урон увеличен!", GREEN)
+                        else:
+                            sound_manager.play("error")
                     if event.key == pygame.K_f and selected_tower:
                         cost = selected_tower.get_radar_upgrade_cost()
                         if cost and manager.money >= cost:
                             manager.money -= cost
                             selected_tower.upgrade_radar()
+                            sound_manager.play("upgrade")
                             msg_hud.show("Радар улучшен!", GREEN)
                     if event.key == pygame.K_s and selected_tower:
                         manager.money += selected_tower.cost // 2
                         towers.remove(selected_tower)
                         selected_tower = None
+                        sound_manager.play("upgrade")
                         msg_hud.show("Башня продана!", YELLOW)
                     if event.key == pygame.K_e and not manager.wave_active:
                         manager.next_wave()
 
                 if manager.game_over:
-                    if event.key == pygame.K_r: return game_loop()
-                    if event.key == pygame.K_q: running = False
+                    if event.key == pygame.K_r:
+                        sound_manager.play("click")
+                        return game_loop()
+                    if event.key == pygame.K_q:
+                        sound_manager.play("click")
+                        running = False
 
             # 3. КЛИКИ МЫШЬЮ
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
@@ -187,6 +202,8 @@ def game_loop():
             if is_mouse_click or is_space_click:
                 if paused:
                     action = pause_menu.handle_click(mouse_pos)
+                    if action: 
+                        sound_manager.play("click")
                     if action == "resume": paused = False
                     elif action == "restart": return game_loop()
                     elif action == "quit": running = False
@@ -198,6 +215,7 @@ def game_loop():
                     continue
 
                 if wave_ui.handle_click(mouse_pos, manager) == "next_wave":
+                    sound_manager.play("click")
                     manager.next_wave()
                     continue
                 
@@ -234,10 +252,13 @@ def game_loop():
                     if ok and manager.money >= cost:
                         towers.append(build_ui.selected_class(mouse_pos[0], mouse_pos[1]))
                         manager.money -= cost
+                        sound_manager.play("build")
                         selected_tower = None
                     elif not ok:
+                        sound_manager.play("error")
                         msg_hud.show(reason, RED)
                     else:
+                        sound_manager.play("error")
                         msg_hud.show("Недостаточно денег!", RED)
 
         # --- ОБНОВЛЕНИЕ ЛОГИКИ ---
