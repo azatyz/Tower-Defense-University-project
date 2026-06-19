@@ -237,7 +237,10 @@ def game_loop():
                     if cost and manager.money >= cost:
                         manager.money -= cost
                         selected_tower.upgrade_damage()
+                        sound_manager.play("upgrade")
                         msg_hud.show("Урон увеличен!", GREEN)
+                    else:
+                        sound_manager.play("error")
                     continue
                     
                 if click_action == "upgrade_radar" and selected_tower:
@@ -245,7 +248,10 @@ def game_loop():
                     if cost and manager.money >= cost:
                         manager.money -= cost
                         selected_tower.upgrade_radar()
+                        sound_manager.play("upgrade")
                         msg_hud.show("Радар улучшен!", GREEN)
+                    else:
+                        sound_manager.play("error")
                     continue
 
                 # Клик по построенной башне (выбор)
