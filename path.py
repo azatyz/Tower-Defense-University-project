@@ -6,7 +6,7 @@ class Path:
 
     def __init__(self, points):
         self.points = points
-        self.path_width = 60
+        self.path_width = 59
         self.path_color = (80, 80, 80)
 
     def draw(self, screen):
@@ -22,7 +22,7 @@ class Path:
                 screen,
                 self.path_color,
                 (int(point[0]), int(point[1])),
-                self.path_width // 2,
+                (self.path_width // 2),
             )
 
     def get_point_at_index(self, index):

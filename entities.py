@@ -352,7 +352,6 @@ TOWER_TYPES = {
     pygame.K_4: BombTower,
 }
 
-
 def can_place_tower(x, y, path, towers):
     if path.is_position_on_path(x, y, TOWER_PLACEMENT_RADIUS):
         return False, "Нельзя строить на дороге"
@@ -400,4 +399,3 @@ def create_enemy_for_wave(path, wave):
     enemy.speed += wave // 3
     enemy.reward += wave * 2
     return enemy
-
