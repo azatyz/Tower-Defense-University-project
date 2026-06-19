@@ -232,6 +232,14 @@ def game_loop():
                     continue
                 
                 click_action = info_panel.handle_click(mouse_pos)
+                if click_action == "sell" and selected_tower:
+                    manager.money += selected_tower.cost // 2
+                    towers.remove(selected_tower)
+                    selected_tower = None
+                    sound_manager.play("upgrade")
+                    msg_hud.show("Башня продана!", YELLOW)
+                    continue
+
                 if click_action == "upgrade_damage" and selected_tower:
                     cost = selected_tower.get_damage_upgrade_cost()
                     if cost and manager.money >= cost:

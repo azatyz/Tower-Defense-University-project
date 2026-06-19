@@ -167,14 +167,16 @@ class TowerInfoPanel:
         self.font = font
         self.upg_dmg_rect = pygame.Rect(0, 0, 0, 0)
         self.upg_rad_rect = pygame.Rect(0, 0, 0, 0)
+        self.sell_rect = pygame.Rect(0, 0, 0, 0) 
 
     def draw(self, screen, tower, money):
         if tower is None:
             self.upg_dmg_rect = pygame.Rect(0, 0, 0, 0)
             self.upg_rad_rect = pygame.Rect(0, 0, 0, 0)
+            self.sell_rect = pygame.Rect(0, 0, 0, 0)
             return
 
-        panel_rect = pygame.Rect(WIDTH - 300, HEIGHT - 290, 280, 220)
+        panel_rect = pygame.Rect(20, HEIGHT - 310, 280, 240)
         pygame.draw.rect(screen, (25, 25, 25), panel_rect, border_radius=8)
         pygame.draw.rect(screen, tower.color, panel_rect, 2, border_radius=8)
 
@@ -192,14 +194,14 @@ class TowerInfoPanel:
         ]
         if tower.splash_radius > 0:
             lines.append(f"Взрыв: {tower.splash_radius}")
-        lines.append(f"Продать: {tower.cost // 2}$ (S)")
 
         for index, line in enumerate(lines):
             color = YELLOW if index == 0 else WHITE
             screen.blit(self.font.render(line, True, color), (panel_rect.x + 14, panel_rect.y + 12 + index * 22))
 
-        self.upg_dmg_rect = pygame.Rect(panel_rect.x + 14, panel_rect.bottom - 80, panel_rect.width - 28, 30)
-        self.upg_rad_rect = pygame.Rect(panel_rect.x + 14, panel_rect.bottom - 42, panel_rect.width - 28, 30)
+        self.upg_dmg_rect = pygame.Rect(panel_rect.x + 14, panel_rect.bottom - 118, panel_rect.width - 28, 30)
+        self.upg_rad_rect = pygame.Rect(panel_rect.x + 14, panel_rect.bottom - 80, panel_rect.width - 28, 30)
+        self.sell_rect = pygame.Rect(panel_rect.x + 14, panel_rect.bottom - 42, panel_rect.width - 28, 30)
 
         cost_dmg = tower.get_damage_upgrade_cost()
         cost_rad = tower.get_radar_upgrade_cost()
@@ -223,13 +225,21 @@ class TowerInfoPanel:
         surf_rad = self.font.render(label_rad, True, text_col_rad)
         screen.blit(surf_rad, surf_rad.get_rect(center=self.upg_rad_rect.center))
 
+        # 3. Отрисовка кнопки продажи [S]
+        sell_price = tower.cost // 2
+        pygame.draw.rect(screen, (180, 50, 50), self.sell_rect, border_radius=6)
+        label_sell = f"Продать: {sell_price}$ (S)"
+        surf_sell = self.font.render(label_sell, True, WHITE)
+        screen.blit(surf_sell, surf_sell.get_rect(center=self.sell_rect.center))
+
     def handle_click(self, pos):
         if self.upg_dmg_rect.collidepoint(pos):
             return "upgrade_damage"
         if self.upg_rad_rect.collidepoint(pos):
             return "upgrade_radar"
+        if self.sell_rect.collidepoint(pos):
+            return "sell"
         return None
-
 
 class PauseMenu:
     """Меню паузы"""
