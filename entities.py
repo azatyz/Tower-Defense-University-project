@@ -1,8 +1,6 @@
 import random
 from abc import ABC, abstractmethod
 
-import pygame
-
 from settings import (
     BLUE,
     GREEN,
@@ -61,17 +59,6 @@ class Enemy(GameObject):
         else:
             self.x = current_point[0] + dx * self.progress
             self.y = current_point[1] + dy * self.progress
-
-    def draw(self, screen):
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
-        bar_w = 36
-        bar_h = 6
-        ratio = 0.0 if self.max_hp <= 0 else max(0.0, min(1.0, self.hp / self.max_hp))
-        bar_x = int(self.x - bar_w // 2)
-        bar_y = int(self.y - self.radius - 12)
-        pygame.draw.rect(screen, (40, 40, 40), (bar_x, bar_y, bar_w, bar_h))
-        fill_color = RED if ratio < 0.35 else GREEN
-        pygame.draw.rect(screen, fill_color, (bar_x, bar_y, int(bar_w * ratio), bar_h))
 
     def reached_end(self):
         return self.path_index >= self.path.get_total_points() - 1
@@ -218,29 +205,6 @@ class Tower(GameObject):
         if self.can_shoot():
             self.cooldown = self.cooldown_max
 
-    def draw(self, screen):
-        # 1. Основание башни (темно-серый скругленный квадрат)
-        base_rect = (self.x - self.width // 2, self.y - self.height // 2, self.width, self.height)
-        pygame.draw.rect(screen, (40, 40, 40), base_rect, border_radius=8)
-        
-        # 2. Обводка цветом типа башни
-        pygame.draw.rect(screen, self.color, base_rect, 3, border_radius=8)
-        
-        # 3. Башня (кружок в центре)
-        pygame.draw.circle(screen, self.color, (self.x, self.y), 10)
-        
-        if self.current_target:
-            dist = self.current_target.get_distance_to(self.x, self.y)
-            if dist <= self.radar_range:
-                laser_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-                start_pos = (self.x, self.y) 
-                end_pos = (int(self.current_target.x), int(self.current_target.y))
-                
-                pygame.draw.line(laser_surf, (*self.color, 90), start_pos, end_pos, 2)
-                if dist <= self.shoot_range:
-                    pygame.draw.circle(laser_surf, RED, end_pos, 4)
-                screen.blit(laser_surf, (0, 0))
-
 
 class BasicTower(Tower):
     cost = 120
@@ -333,24 +297,11 @@ class Projectile(GameObject):
         self.x += self.vx
         self.y += self.vy
 
-    def draw(self, screen):
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
-        if self.splash_radius > 0:
-            pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius + 3, 1)
-
     def is_done(self):
         return self.x < 0 or self.x > WIDTH or self.y < 0 or self.y > HEIGHT
 
     def get_distance_to(self, other_x, other_y):
         return ((self.x - other_x) ** 2 + (self.y - other_y) ** 2) ** 0.5
-
-
-TOWER_TYPES = {
-    pygame.K_1: BasicTower,
-    pygame.K_2: SniperTower,
-    pygame.K_3: FastTower,
-    pygame.K_4: BombTower,
-}
 
 def can_place_tower(x, y, path, towers):
     if path.is_position_on_path(x, y, TOWER_PLACEMENT_RADIUS):

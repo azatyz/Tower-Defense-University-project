@@ -1,6 +1,3 @@
-import pygame
-
-
 class Path:
     """Класс для управления тропинкой врагов"""
 
@@ -8,22 +5,6 @@ class Path:
         self.points = points
         self.path_width = 59
         self.path_color = (80, 80, 80)
-
-    def draw(self, screen):
-        """Отрисовка тропинки на экране"""
-        if len(self.points) < 2:
-            return
-        for i in range(len(self.points) - 1):
-            start = (int(self.points[i][0]), int(self.points[i][1]))
-            end = (int(self.points[i + 1][0]), int(self.points[i + 1][1]))
-            pygame.draw.line(screen, self.path_color, start, end, self.path_width)
-        for point in self.points:
-            pygame.draw.circle(
-                screen,
-                self.path_color,
-                (int(point[0]), int(point[1])),
-                (self.path_width // 2),
-            )
 
     def get_point_at_index(self, index):
         """Получение точки пути по индексу"""
