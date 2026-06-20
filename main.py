@@ -6,6 +6,7 @@ import json
 from config.settings import *
 
 from models.path import create_default_path
+from models.entities import BossEnemy
 from models.entities import can_place_tower, create_enemy_for_wave, Projectile, BasicTower, SniperTower, FastTower, BombTower
 from models.game_manager import GameManager
 
@@ -306,7 +307,16 @@ def game_loop():
             # Спавн врагов
             if manager.wave_active and manager.spawned_this_wave < manager.enemies_in_wave:
                 if manager.wave_timer % 40 == 0:
-                    enemies.append(create_enemy_for_wave(path, manager.wave))
+                    # Достаем класс врага и номер волны из нашей сгенерированной очереди
+                    enemy_class, wave_num = manager.current_wave_queue[manager.spawned_this_wave]
+        
+                    # Боссу нужен номер волны для расчета ХП, остальным — только путь
+                    if enemy_class == BossEnemy:
+                        new_enemy = BossEnemy(path, wave_num)
+                    else:
+                        new_enemy = enemy_class(path)
+
+                    enemies.append(new_enemy)
                     manager.register_spawn()
 
             # Конец волны

@@ -67,10 +67,9 @@ class GameManagerTests(unittest.TestCase):
         manager.next_wave()
 
         self.assertEqual(manager.wave, 1)
-        self.assertEqual(manager.enemies_in_wave, 4)
+        self.assertEqual(manager.enemies_in_wave, 13) 
         self.assertTrue(manager.wave_active)
         self.assertEqual(manager.spawned_this_wave, 0)
-
 
 class TowerUpgradeTests(unittest.TestCase):
     def test_radar_upgrade_increases_ranges(self):

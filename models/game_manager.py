@@ -1,4 +1,6 @@
 from config.settings import BASE_HEALTH_MAX, START_MONEY
+import random
+from models.entities import Enemy, FastEnemy, TankEnemy, BossEnemy
 
 
 class GameManager:
@@ -31,11 +33,53 @@ class GameManager:
             and self.spawned_this_wave >= self.enemies_in_wave
         )
 
+    def generate_dynamic_wave(self):
+        """Динамический алгоритм генерации волны"""
+        wave_queue = []
+        
+        if self.wave % 10 == 0:
+            # Юбилейная волна: спавним Босса и немного поддержки
+            wave_queue.append((BossEnemy, self.wave))
+            for _ in range(self.wave // 5):
+                wave_queue.append((FastEnemy, self.wave))
+            random.shuffle(wave_queue)
+            return wave_queue
+
+        # 2. Расчет бюджета на волну
+        budget = 10 + int(self.wave ** 1.5 * 3)
+        
+        # 3. Каталог врагов
+        enemy_catalog = {
+            "basic": {"class": Enemy, "cost": 1, "min_wave": 1},
+            "fast":  {"class": FastEnemy, "cost": 2, "min_wave": 3},
+            "tank":  {"class": TankEnemy, "cost": 5, "min_wave": 5}
+        }
+        
+        # 4. Генерация волны
+        while budget > 0:
+            available_options = [
+                data for data in enemy_catalog.values() 
+                if data["cost"] <= budget and data["min_wave"] <= self.wave
+            ]
+            
+            if not available_options:
+                break 
+                
+            choice = random.choice(available_options)
+            wave_queue.append((choice["class"], self.wave))
+            budget -= choice["cost"]
+            
+        random.shuffle(wave_queue)
+        
+        return wave_queue
+    
     def next_wave(self):
         self.wave += 1
-        self.enemies_in_wave = 3 + self.wave
-        self.max_kills_per_wave = self.kills
-        self.wave_timer = 0
+        # Генерируем умную очередь врагов
+        self.current_wave_queue = self.generate_dynamic_wave()
+        
+        # Количество врагов берется из длины сгенерированной очереди
+        self.enemies_in_wave = len(self.current_wave_queue)
         self.spawned_this_wave = 0
         self.wave_active = True
 
