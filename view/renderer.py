@@ -1,5 +1,6 @@
 import pygame
 from config.settings import WIDTH, HEIGHT, RED, GREEN
+from models.entities import BossEnemy
 
 class GameRenderer:
     """Отрисовка игры"""
@@ -31,13 +32,27 @@ class GameRenderer:
             pygame.draw.circle(self.screen, path.path_color, (int(point[0]), int(point[1])), path.path_width // 2)
 
     def draw_enemy(self, enemy):
-        pygame.draw.circle(self.screen, enemy.color, (int(enemy.x), int(enemy.y)), enemy.radius)
-        bar_w = 36
+        # 1. Отрисовка самого тела врага
+        if isinstance(enemy, BossEnemy):
+            # Босс
+            pygame.draw.circle(self.screen, (138, 43, 226), (int(enemy.x), int(enemy.y)), enemy.radius)
+            pygame.draw.circle(self.screen, (255, 0, 0), (int(enemy.x), int(enemy.y)), enemy.radius + 2, 3)
+        else:
+            # Обычный враг
+            pygame.draw.circle(self.screen, enemy.color, (int(enemy.x), int(enemy.y)), enemy.radius)
+
+        # 2. Адаптивная полоска здоровья
+        # Ширина теперь зависит от габаритов врага
+        bar_w = int(enemy.radius * 2) 
         bar_h = 6
+        
         ratio = 0.0 if enemy.max_hp <= 0 else max(0.0, min(1.0, enemy.hp / enemy.max_hp))
+        
         bar_x = int(enemy.x - bar_w // 2)
         bar_y = int(enemy.y - enemy.radius - 12)
+        
         pygame.draw.rect(self.screen, (40, 40, 40), (bar_x, bar_y, bar_w, bar_h))
+        
         fill_color = RED if ratio < 0.35 else GREEN
         pygame.draw.rect(self.screen, fill_color, (bar_x, bar_y, int(bar_w * ratio), bar_h))
 
