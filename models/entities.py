@@ -323,6 +323,26 @@ class TankEnemy(Enemy):
         self.color = (180, 40, 40)
 
 
+class BossEnemy(Enemy):
+    """Юбилейный Босс"""
+    def __init__(self, path, current_wave):
+        super().__init__(path)
+        
+        # Вычисляем множитель босса
+        multiplier = max(1, current_wave // 10)
+        
+        # Базовые 500 ХП умножаются на 1.5 с каждым юбилеем
+        self.max_hp = int(500 * (1.5 ** (multiplier - 1)))
+        self.hp = self.max_hp
+        
+        self.speed = 0.5 
+        self.radius = 25
+        
+        self.reward = 150 * multiplier
+        
+        self.damage = 25
+
+
 def create_enemy_for_wave(path, wave):
     if wave % 5 == 0:
         enemy = TankEnemy(path)
