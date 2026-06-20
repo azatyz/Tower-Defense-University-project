@@ -284,8 +284,15 @@ def game_loop():
                         clicked_on_tower = True
                         break
                 
+                # Проверяем, кликнули ли мы по интерфейсу внизу
+                clicked_on_ui = False
+                if is_mouse_click:
+                    clicked_on_ui = build_ui.handle_click(mouse_pos)
+                    if clicked_on_ui:
+                        sound_manager.play("click")
+
                 # Постройка новой башни
-                if not clicked_on_tower and build_ui.selected_class:
+                if not clicked_on_ui and not clicked_on_tower and build_ui.selected_class:
                     ok, reason = can_place_tower(mouse_pos[0], mouse_pos[1], path, towers)
                     cost = build_ui.selected_class(0,0).cost
                     if ok and manager.money >= cost:
@@ -384,7 +391,7 @@ def game_loop():
 
         # Отрисовка UI
         build_ui.draw_preview(screen, mouse_pos, path, towers, manager.money, manager.game_over)
-        build_ui.draw_toolbar(screen, build_ui.selected_class)
+        build_ui.draw_toolbar(screen)
         wave_ui.draw(screen, manager, enemies)
         info_panel.draw(screen, selected_tower, manager.money)
         msg_hud.draw(screen)

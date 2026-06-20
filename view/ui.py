@@ -42,6 +42,7 @@ class BuildUI:
     def __init__(self, font):
         self.font = font
         self.selected_class = None
+        self.buttons = []
 
     def set_tower_type(self, tower_class):
         self.selected_class = tower_class
@@ -86,7 +87,9 @@ class BuildUI:
         hint_surf = self.font.render(hint, True, WHITE if valid else RED)
         screen.blit(hint_surf, (mx + 15, my - 60))
 
-    def draw_toolbar(self, screen, selected_class):
+    def draw_toolbar(self, screen):
+        self.buttons.clear() # Чистка хитбоксов 
+        
         panel_height = 60
         panel_rect = pygame.Rect(0, HEIGHT - panel_height, WIDTH, panel_height)
         pygame.draw.rect(screen, (20, 20, 20), panel_rect)
@@ -100,9 +103,24 @@ class BuildUI:
         ]
         
         segment_width = WIDTH // len(options)
+        mouse_pos = pygame.mouse.get_pos()
         
         for index, (tower_cls, line) in enumerate(options):
-            color = YELLOW if selected_class is tower_cls else WHITE
+            # Создаем хитбокс для всей секции кнопки
+            button_rect = pygame.Rect(index * segment_width, HEIGHT - panel_height, segment_width, panel_height)
+            self.buttons.append((button_rect, tower_cls))
+            
+            # Подсвечиваем фон при наведении или выборе
+            if self.selected_class is tower_cls:
+                pygame.draw.rect(screen, (60, 60, 60), button_rect)
+            elif button_rect.collidepoint(mouse_pos):
+                pygame.draw.rect(screen, (40, 40, 40), button_rect)
+                
+            # Вертикальные разделители между кнопками
+            if index > 0:
+                pygame.draw.line(screen, (50, 50, 50), (index * segment_width, HEIGHT - panel_height), (index * segment_width, HEIGHT))
+
+            color = YELLOW if self.selected_class is tower_cls else WHITE
             text_surf = self.font.render(line, True, color)
             
             center_x = (index * segment_width) + (segment_width // 2)
@@ -110,6 +128,15 @@ class BuildUI:
             text_rect = text_surf.get_rect(center=(center_x, center_y))
             
             screen.blit(text_surf, text_rect)
+
+    # Метод обработки клика
+    def handle_click(self, mouse_pos):
+        """Проверяет, кликнули ли мы в какую-то из кнопок на тулбаре"""
+        for rect, tower_class in self.buttons:
+            if rect.collidepoint(mouse_pos):
+                self.selected_class = tower_class
+                return True 
+        return False 
 
 
 class WaveUI:
