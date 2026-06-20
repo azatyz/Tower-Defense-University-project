@@ -1,18 +1,7 @@
 import pygame
+from config.settings import *
 
-from settings import (
-    BLACK,
-    HEIGHT,
-    ORANGE,
-    PREVIEW_BAD,
-    PREVIEW_OK,
-    RED,
-    TOWER_PLACEMENT_RADIUS,
-    WHITE,
-    WIDTH,
-    YELLOW,
-)
-from entities import BasicTower, BombTower, FastTower, SniperTower, can_place_tower
+from models.entities import BasicTower, SniperTower, FastTower, BombTower, can_place_tower
 
 
 class MessageHUD:

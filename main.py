@@ -1,14 +1,24 @@
 import pygame
 import sys
-import json
 import os
+import json
 
-from settings import *
-from path import create_default_path
-from game_manager import GameManager
-from entities import TOWER_TYPES, can_place_tower, create_enemy_for_wave, Projectile
-from ui import BuildUI, WaveUI, TowerInfoPanel, PauseMenu, MessageHUD
-from audio import SoundManager
+from config.settings import *
+
+from models.path import create_default_path
+from models.entities import can_place_tower, create_enemy_for_wave, Projectile, BasicTower, SniperTower, FastTower, BombTower
+from models.game_manager import GameManager
+
+from view.ui import BuildUI, WaveUI, TowerInfoPanel, PauseMenu, MessageHUD
+from view.renderer import GameRenderer
+from view.audio import SoundManager
+
+TOWER_TYPES = {
+    pygame.K_1: BasicTower,
+    pygame.K_2: SniperTower,
+    pygame.K_3: FastTower,
+    pygame.K_4: BombTower,
+}
 
 def load_highscore():
     """Загрузка максимально пройденной волны"""
@@ -106,6 +116,7 @@ def game_loop():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tower Defense Project")
+    renderer = GameRenderer(screen)
     clock = pygame.time.Clock()
 
     font = pygame.font.Font(None, 28)
@@ -354,27 +365,12 @@ def game_loop():
 
             msg_hud.update()
 
-        # Отрисовка
-        # Фоновый цвет
-        screen.fill((30, 40, 30)) 
-
-        path.draw(screen)
-        
-        # Отрисовка радиусов выбранной башни
-        if selected_tower and show_radius:
-            pygame.draw.circle(screen, selected_tower.color, (selected_tower.x, selected_tower.y), selected_tower.shoot_range, 2)
+        # Отрисовка игрового мира
+        if not paused and not manager.game_over:
+            renderer.draw_frame(path, towers, enemies, projectiles)
             
-            radar_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            pygame.draw.circle(radar_surf, (*selected_tower.color, 50), (selected_tower.x, selected_tower.y), selected_tower.radar_range, 1)
-            pygame.draw.circle(radar_surf, (*selected_tower.color, 10), (selected_tower.x, selected_tower.y), selected_tower.radar_range, 0)
-            screen.blit(radar_surf, (0, 0))
-
-        for tower in towers:
-            tower.draw(screen)
-        for enemy in enemies:
-            enemy.draw(screen)
-        for proj in projectiles:
-            proj.draw(screen)
+            if selected_tower and show_radius:
+                renderer.draw_tower_radius(selected_tower)
 
         # Отрисовка UI
         build_ui.draw_preview(screen, mouse_pos, path, towers, manager.money, manager.game_over)

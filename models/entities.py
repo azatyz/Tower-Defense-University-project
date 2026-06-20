@@ -1,17 +1,7 @@
 import random
 from abc import ABC, abstractmethod
 
-from settings import (
-    BLUE,
-    GREEN,
-    ORANGE,
-    MIN_TOWER_DISTANCE,
-    RED,
-    TOWER_PLACEMENT_RADIUS,
-    YELLOW,
-    WIDTH,
-    HEIGHT,
-)
+from config.settings import * 
 
 
 class GameObject(ABC):
@@ -19,10 +9,6 @@ class GameObject(ABC):
 
     @abstractmethod
     def update(self):
-        pass
-
-    @abstractmethod
-    def draw(self, screen):
         pass
 
 

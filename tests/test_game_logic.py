@@ -1,20 +1,22 @@
 import os
+import sys
 import unittest
 
-os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame
 
-from entities import (
+from models.entities import (
     BasicTower,
     BombTower,
     Enemy,
     SniperTower,
     TankEnemy,
-    can_place_tower,
+    can_place_tower
 )
-from game_manager import GameManager
-from path import create_default_path
+from models.game_manager import GameManager
+from models.path import create_default_path
 
 
 class TowerPlacementTests(unittest.TestCase):

@@ -1,5 +1,3 @@
-import pygame
-
 # Настройки экрана
 WIDTH = 1400
 HEIGHT = 900

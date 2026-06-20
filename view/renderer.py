@@ -1,5 +1,5 @@
 import pygame
-from settings import WIDTH, HEIGHT, RED, GREEN, YELLOW
+from config.settings import WIDTH, HEIGHT, RED, GREEN
 
 class GameRenderer:
     """Отрисовка игры"""

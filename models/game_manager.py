@@ -1,4 +1,4 @@
-from settings import BASE_HEALTH_MAX, START_MONEY
+from config.settings import BASE_HEALTH_MAX, START_MONEY
 
 
 class GameManager:
