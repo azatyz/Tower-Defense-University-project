@@ -1,3 +1,6 @@
+import pygame
+
+
 class Path:
     """Класс для управления тропинкой врагов"""
 
@@ -26,6 +29,24 @@ class Path:
             if distance < min_clearance:
                 return True
         return False
+
+    def draw(self, screen):
+        """Отрисовка пути на экране"""
+        if len(self.points) < 2:
+            return
+
+        for i in range(len(self.points) - 1):
+            start = (int(self.points[i][0]), int(self.points[i][1]))
+            end = (int(self.points[i + 1][0]), int(self.points[i + 1][1]))
+            pygame.draw.line(screen, self.path_color, start, end, self.path_width)
+
+        for point in self.points:
+            pygame.draw.circle(
+                screen,
+                self.path_color,
+                (int(point[0]), int(point[1])),
+                self.path_width // 2,
+            )
 
     @staticmethod
     def _distance_to_segment(x, y, x1, y1, x2, y2):

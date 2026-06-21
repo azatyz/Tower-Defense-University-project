@@ -88,7 +88,7 @@ def _spawn_enemies(manager, path, enemies):
     if not manager.wave_active or manager.spawned_this_wave >= manager.enemies_in_wave:
         return
 
-    if manager.wave_timer % 40 != 0:
+    if manager.wave_timer % 20 != 0:
         return
 
     enemy_class, wave_num = manager.current_wave_queue[manager.spawned_this_wave]
@@ -113,7 +113,7 @@ def _update_enemies(manager, enemies):
     for enemy in enemies[:]:
         enemy.update()
         if enemy.reached_end():
-            manager.damage_base(10)
+            manager.damage_base(enemy.damage)
             enemies.remove(enemy)
             if manager.game_over:
                 save_highscore(manager.wave)

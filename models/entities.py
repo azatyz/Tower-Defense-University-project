@@ -1,6 +1,8 @@
 import random
 from abc import ABC, abstractmethod
 
+import pygame
+
 from config.settings import * 
 
 
@@ -9,6 +11,10 @@ class GameObject(ABC):
 
     @abstractmethod
     def update(self):
+        pass
+
+    @abstractmethod
+    def draw(self, screen):
         pass
 
 
@@ -23,6 +29,7 @@ class Enemy(GameObject):
         self.hp = 100
         self.max_hp = self.hp
         self.reward = 50
+        self.damage = 10
         self.radius = 15
         self.color = RED
         self.progress = 0
@@ -54,6 +61,25 @@ class Enemy(GameObject):
 
     def path_progress_score(self):
         return self.path_index + self.progress
+
+    def draw(self, screen):
+        self._draw_body(screen)
+        self._draw_health_bar(screen)
+
+    def _draw_body(self, screen):
+        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+
+    def _draw_health_bar(self, screen):
+        bar_w = int(self.radius * 2)
+        bar_h = 6
+        ratio = 0.0 if self.max_hp <= 0 else max(0.0, min(1.0, self.hp / self.max_hp))
+
+        bar_x = int(self.x - bar_w // 2)
+        bar_y = int(self.y - self.radius - 12)
+
+        pygame.draw.rect(screen, (40, 40, 40), (bar_x, bar_y, bar_w, bar_h))
+        fill_color = RED if ratio < 0.35 else GREEN
+        pygame.draw.rect(screen, fill_color, (bar_x, bar_y, int(bar_w * ratio), bar_h))
 
 
 class TargetStrategy(ABC):
@@ -191,6 +217,32 @@ class Tower(GameObject):
         if self.can_shoot():
             self.cooldown = self.cooldown_max
 
+    def draw(self, screen):
+        base_rect = (
+            self.x - self.width // 2,
+            self.y - self.height // 2,
+            self.width,
+            self.height,
+        )
+        pygame.draw.rect(screen, (40, 40, 40), base_rect, border_radius=8)
+        pygame.draw.rect(screen, self.color, base_rect, 3, border_radius=8)
+        pygame.draw.circle(screen, self.color, (self.x, self.y), 10)
+
+        if not self.current_target:
+            return
+
+        dist = self.current_target.get_distance_to(self.x, self.y)
+        if dist > self.radar_range:
+            return
+
+        laser_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        start_pos = (self.x, self.y)
+        end_pos = (int(self.current_target.x), int(self.current_target.y))
+        pygame.draw.line(laser_surf, (*self.color, 90), start_pos, end_pos, 2)
+        if dist <= self.shoot_range:
+            pygame.draw.circle(laser_surf, RED, end_pos, 4)
+        screen.blit(laser_surf, (0, 0))
+
 
 class BasicTower(Tower):
     cost = 120
@@ -289,6 +341,17 @@ class Projectile(GameObject):
     def get_distance_to(self, other_x, other_y):
         return ((self.x - other_x) ** 2 + (self.y - other_y) ** 2) ** 0.5
 
+    def draw(self, screen):
+        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+        if self.splash_radius > 0:
+            pygame.draw.circle(
+                screen,
+                self.color,
+                (int(self.x), int(self.y)),
+                self.radius + 3,
+                1,
+            )
+
 def can_place_tower(x, y, path, towers):
     if path.is_position_on_path(x, y, TOWER_PLACEMENT_RADIUS):
         return False, "Нельзя строить на дороге"
@@ -341,6 +404,10 @@ class BossEnemy(Enemy):
         self.reward = 150 * multiplier
         
         self.damage = 25
+
+    def _draw_body(self, screen):
+        pygame.draw.circle(screen, (138, 43, 226), (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), self.radius + 2, 3)
 
 
 def create_enemy_for_wave(path, wave):

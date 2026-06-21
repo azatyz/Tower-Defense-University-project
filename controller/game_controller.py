@@ -3,7 +3,7 @@ import sys
 
 import pygame
 
-from config.save_manager import load_highscore
+from config.save_manager import load_highscore, save_highscore
 from config.settings import FPS, GREEN, HEIGHT, RED, WIDTH, YELLOW
 from controller import game_logic
 from models.entities import BasicTower, BombTower, FastTower, SniperTower
@@ -92,6 +92,8 @@ def _run_session(screen, clock, renderer, sound_manager, font, font_large, state
             )
             _show_logic_events(events, ui["message"])
             ui["message"].update()
+            if state.manager.game_over:
+                state.highscore = max(state.highscore, state.manager.wave)
 
         draw_game_ui(
             screen,
@@ -111,7 +113,7 @@ def _run_session(screen, clock, renderer, sound_manager, font, font_large, state
 
 def _handle_event(event, mouse_pos, state, ui, sound_manager):
     if event.type == pygame.QUIT:
-        return "quit"
+        return _finish_session("quit", state)
 
     if event.type == pygame.KEYDOWN:
         action = _handle_keydown(event.key, state, ui, sound_manager)
@@ -136,28 +138,24 @@ def _handle_keydown(key, state, ui, sound_manager):
     if key == pygame.K_ESCAPE:
         sound_manager.play("click")
         state.paused = not state.paused
+        return None
+
+    if key == pygame.K_t:
+        sound_manager.play("click")
+        state.show_radius = not state.show_radius
 
     if state.paused:
-        if key == pygame.K_t:
-            sound_manager.play("click")
-            state.show_radius = not state.show_radius
-        elif key == pygame.K_r:
+        if key == pygame.K_r:
             sound_manager.play("click")
             pygame.time.delay(100)
-            return "restart"
+            return _finish_session("restart", state)
         elif key == pygame.K_q:
             sound_manager.play("click")
             pygame.time.delay(200)
-            return "quit"
+            return _finish_session("quit", state)
         return None
 
     if state.manager.game_over:
-        if key == pygame.K_r:
-            sound_manager.play("click")
-            return "restart"
-        if key == pygame.K_q:
-            sound_manager.play("click")
-            return "quit"
         return None
 
     if key in TOWER_TYPES:
@@ -186,9 +184,9 @@ def _handle_primary_action(mouse_pos, state, ui, sound_manager, is_mouse_click):
         if action == "resume":
             state.paused = False
         elif action == "restart":
-            return "restart"
+            return _finish_session("restart", state)
         elif action == "quit":
-            return "quit"
+            return _finish_session("quit", state)
         elif action == "toggle_radius":
             state.show_radius = not state.show_radius
         return None
@@ -275,3 +273,13 @@ def _handle_sell(state, message_hud, sound_manager):
 def _show_logic_events(events, message_hud):
     for event in events:
         message_hud.show(event["message"], MESSAGE_COLORS[event["kind"]])
+
+
+def _finish_session(action, state):
+    _persist_highscore(state)
+    return action
+
+
+def _persist_highscore(state):
+    save_highscore(state.manager.wave)
+    state.highscore = max(state.highscore, state.manager.wave)

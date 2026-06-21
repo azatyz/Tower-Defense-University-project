@@ -337,7 +337,7 @@ def draw_game_ui(
     message_hud.draw(screen)
     _draw_hud(screen, font, state)
 
-    if state.paused and not state.manager.game_over:
+    if state.paused:
         pause_menu.draw(screen, state.show_radius)
 
     if state.manager.game_over:
@@ -373,6 +373,6 @@ def _draw_game_over(screen, font, font_large, state):
     screen.blit(font_large.render("GAME OVER", True, RED), (WIDTH // 2 - 150, HEIGHT // 2 - 100))
     screen.blit(font.render(f"Вы дошли до {state.manager.wave} волны!", True, WHITE), (WIDTH // 2 - 120, HEIGHT // 2))
     screen.blit(
-        font.render("Нажми [R] для рестарта или [Q] для выхода", True, YELLOW),
-        (WIDTH // 2 - 180, HEIGHT // 2 + 50),
+        font.render("Нажми [Esc], чтобы открыть меню паузы", True, YELLOW),
+        (WIDTH // 2 - 190, HEIGHT // 2 + 50),
     )

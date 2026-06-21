@@ -75,6 +75,7 @@ class GameManager:
     
     def next_wave(self):
         self.wave += 1
+        self.wave_timer = 0
         # Генерируем умную очередь врагов
         self.current_wave_queue = self.generate_dynamic_wave()
         
