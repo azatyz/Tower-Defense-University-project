@@ -1,5 +1,17 @@
 import pygame
-from config.settings import *
+from config.settings import (
+    BLACK,
+    GREEN,
+    HEIGHT,
+    ORANGE,
+    PREVIEW_BAD,
+    PREVIEW_OK,
+    RED,
+    TOWER_PLACEMENT_RADIUS,
+    WHITE,
+    WIDTH,
+    YELLOW,
+)
 
 from models.entities import BasicTower, SniperTower, FastTower, BombTower, can_place_tower
 

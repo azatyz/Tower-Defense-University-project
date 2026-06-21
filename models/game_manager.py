@@ -15,23 +15,15 @@ class GameManager:
         self.kills = 0
         self.wave = 0
         self.wave_timer = 0
-        self.wave_cooldown = 120
         self.enemies_in_wave = 0
         self.spawned_this_wave = 0
         self.game_over = False
-        self.max_kills_per_wave = 0
         self.base_health = BASE_HEALTH_MAX
         self.wave_active = False
 
     def update(self):
         if self.wave_active:
             self.wave_timer += 1
-
-    def is_wave_ready(self):
-        return (
-            self.wave_timer >= self.wave_cooldown
-            and self.spawned_this_wave >= self.enemies_in_wave
-        )
 
     def generate_dynamic_wave(self):
         """Динамический алгоритм генерации волны"""
@@ -96,12 +88,6 @@ class GameManager:
         if self.base_health <= 0:
             self.base_health = 0
             self.game_over = True
-
-    def calculate_wave_efficiency(self):
-        if self.enemies_in_wave == 0:
-            return 0.0
-        killed_this_wave = self.kills - self.max_kills_per_wave
-        return (killed_this_wave / self.enemies_in_wave) * 100
 
     def get_hud_line(self):
         return f"Волна: {self.wave} | Деньги: {self.money}$ | Убито: {self.kills}"

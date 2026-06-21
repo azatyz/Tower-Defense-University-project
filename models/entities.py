@@ -1,9 +1,18 @@
-import random
 from abc import ABC, abstractmethod
 
 import pygame
 
-from config.settings import * 
+from config.settings import (
+    BLUE,
+    GREEN,
+    HEIGHT,
+    MIN_TOWER_DISTANCE,
+    ORANGE,
+    RED,
+    TOWER_PLACEMENT_RADIUS,
+    WIDTH,
+    YELLOW,
+)
 
 
 class GameObject(ABC):
@@ -410,16 +419,3 @@ class BossEnemy(Enemy):
         pygame.draw.circle(screen, RED, (int(self.x), int(self.y)), self.radius + 2, 3)
 
 
-def create_enemy_for_wave(path, wave):
-    if wave % 5 == 0:
-        enemy = TankEnemy(path)
-    elif random.random() < min(0.25 + wave * 0.02, 0.5):
-        enemy = FastEnemy(path)
-    else:
-        enemy = Enemy(path)
-
-    enemy.hp += wave * 5
-    enemy.max_hp = enemy.hp
-    enemy.speed += wave // 3
-    enemy.reward += wave * 2
-    return enemy
