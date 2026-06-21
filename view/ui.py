@@ -303,3 +303,76 @@ class PauseMenu:
             if rect.collidepoint(pos):
                 return action
         return None
+
+
+def draw_game_ui(
+    screen,
+    renderer,
+    build_ui,
+    wave_ui,
+    info_panel,
+    pause_menu,
+    message_hud,
+    font,
+    font_large,
+    state,
+    mouse_pos,
+):
+    if not state.paused and not state.manager.game_over:
+        renderer.draw_frame(state.path, state.towers, state.enemies, state.projectiles)
+        if state.selected_tower and state.show_radius:
+            renderer.draw_tower_radius(state.selected_tower)
+
+    build_ui.draw_preview(
+        screen,
+        mouse_pos,
+        state.path,
+        state.towers,
+        state.manager.money,
+        state.manager.game_over,
+    )
+    build_ui.draw_toolbar(screen)
+    wave_ui.draw(screen, state.manager, state.enemies)
+    info_panel.draw(screen, state.selected_tower, state.manager.money)
+    message_hud.draw(screen)
+    _draw_hud(screen, font, state)
+
+    if state.paused and not state.manager.game_over:
+        pause_menu.draw(screen, state.show_radius)
+
+    if state.manager.game_over:
+        _draw_game_over(screen, font, font_large, state)
+
+    pygame.display.flip()
+
+
+def _draw_hud(screen, font, state):
+    hud_bg = pygame.Surface((350, 100))
+    hud_bg.set_alpha(150)
+    hud_bg.fill((0, 0, 0))
+    screen.blit(hud_bg, (5, 5))
+
+    if state.manager.base_health > 60:
+        hp_color = GREEN
+    elif state.manager.base_health > 30:
+        hp_color = YELLOW
+    else:
+        hp_color = RED
+
+    screen.blit(font.render(f"HP Базы: {state.manager.base_health}", True, hp_color), (15, 15))
+    screen.blit(font.render(state.manager.get_hud_line(), True, WHITE), (15, 45))
+    screen.blit(font.render(f"Рекорд: {state.highscore} Волн", True, (200, 200, 200)), (15, 75))
+
+
+def _draw_game_over(screen, font, font_large, state):
+    overlay = pygame.Surface((WIDTH, HEIGHT))
+    overlay.set_alpha(200)
+    overlay.fill(BLACK)
+    screen.blit(overlay, (0, 0))
+
+    screen.blit(font_large.render("GAME OVER", True, RED), (WIDTH // 2 - 150, HEIGHT // 2 - 100))
+    screen.blit(font.render(f"Вы дошли до {state.manager.wave} волны!", True, WHITE), (WIDTH // 2 - 120, HEIGHT // 2))
+    screen.blit(
+        font.render("Нажми [R] для рестарта или [Q] для выхода", True, YELLOW),
+        (WIDTH // 2 - 180, HEIGHT // 2 + 50),
+    )
