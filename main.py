@@ -1,8 +1,7 @@
 import pygame
 import sys
-import os
-import json
 
+from config.save_manager import load_highscore, save_highscore
 from config.settings import *
 
 from models.path import create_default_path
@@ -21,22 +20,6 @@ TOWER_TYPES = {
     pygame.K_4: BombTower,
 }
 
-def load_highscore():
-    """Загрузка максимально пройденной волны"""
-    if os.path.exists("save.json"):
-        try:
-            with open("save.json", "r") as f:
-                return json.load(f).get("max_wave", 0)
-        except:
-            return 0
-    return 0
-
-def save_highscore(wave):
-    """Сохранение рекорда, если он побит"""
-    current_max = load_highscore()
-    if wave > current_max:
-        with open("save.json", "w") as f:
-            json.dump({"max_wave": wave}, f)
 
 def main_menu():
     """Стартовое меню с анимацией и статистикой"""
@@ -50,15 +33,14 @@ def main_menu():
     font_hint = pygame.font.Font(None, 50)
     font_stats = pygame.font.Font(None, 40)
 
-    # Загружаем рекорд, чтобы показать его прямо на старте
-    from main import load_highscore
+    # Загружаем рекорд, чтобы показать его на старте
     highscore = load_highscore()
-    
+
     offset = 0  # Переменная для движения фона
 
     while True:
         mouse_pos = pygame.mouse.get_pos()
-        
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -67,7 +49,7 @@ def main_menu():
                 sound_manager.play("click")
                 pygame.time.delay(150)
                 return
-            
+
             if event.type == pygame.KEYDOWN and event.key in (pygame.K_SPACE, pygame.K_RETURN):
                 sound_manager.play("click")
                 pygame.time.delay(150)
@@ -76,8 +58,8 @@ def main_menu():
         # 1. Анимированный фон
         screen.fill((20, 25, 30))
         offset = (offset + 0.5) % 50 # Сдвигаем линии каждый кадр
-        
-        # Рисуем ползущую сетку
+
+        # Рисуем сетку
         for i in range(0, WIDTH + 50, 50):
             pygame.draw.line(screen, (30, 40, 45), (i - offset, 0), (i - offset, HEIGHT), 2)
         for i in range(0, HEIGHT + 50, 50):
@@ -86,14 +68,14 @@ def main_menu():
         # 2. Заголовок с эффектом тени
         title = font_title.render("TOWER DEFENSE", True, (50, 200, 100))
         title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 3))
-        
+
         # Тень для объема
         title_shadow = font_title.render("TOWER DEFENSE", True, (10, 50, 20))
         screen.blit(title_shadow, title_rect.move(4, 4))
         screen.blit(title, title_rect)
 
         # 3. Интерактивная кнопка (реагирует на наведение мыши)
-        # Проверяем, находится ли курсор примерно в зоне текста
+        # Проверяем, находится ли курсор в зоне текста
         hover_zone = pygame.Rect(WIDTH // 2 - 150, HEIGHT // 2 + 20, 300, 60)
         if hover_zone.collidepoint(mouse_pos):
             hint_text = "Начать игру"
@@ -113,6 +95,7 @@ def main_menu():
 
         pygame.display.flip()
         clock.tick(FPS)
+
 def game_loop():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -126,7 +109,7 @@ def game_loop():
     # Инициализация объектов из архитектуры
     path = create_default_path()
     manager = GameManager()
-    
+
     enemies = []
     towers = []
     projectiles = []
@@ -141,7 +124,7 @@ def game_loop():
 
     paused = False
     selected_tower = None
-    show_radius = True  
+    show_radius = True
     highscore = load_highscore()
 
     running = True
@@ -169,7 +152,7 @@ def game_loop():
                         sound_manager.play("click")
                         pygame.time.delay(200)
                         running = False
-                    continue 
+                    continue
 
                 # 2. Управление игрой
                 if not manager.game_over:
@@ -183,7 +166,7 @@ def game_loop():
                             manager.money -= cost
                             selected_tower.upgrade_damage()
                             sound_manager.play("upgrade")
-                            msg_hud.show("Урон увеличен!", GREEN)
+                            msg_hud.show("Урон улучшен!", GREEN)
                         else:
                             sound_manager.play("error")
                     if event.key == pygame.K_f and selected_tower:
@@ -211,7 +194,7 @@ def game_loop():
                         sound_manager.play("click")
                         running = False
 
-            # 3. Клики мышью
+            # 3. Обработка кликов мыши
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 sound_manager.play("click")
                 build_ui.set_tower_type(None)
@@ -224,15 +207,18 @@ def game_loop():
             if is_mouse_click or is_space_click:
                 if paused:
                     action = pause_menu.handle_click(mouse_pos)
-                    if action: 
+                    if action:
                         sound_manager.play("click")
-                        if action in  ["restart", "quit"]:
+                        if action in ["restart", "quit"]:
                             pygame.time.delay(150)
-                    if action == "resume": paused = False
-                    elif action == "restart": return game_loop()
-                    elif action == "quit": running = False
-                    elif action == "toggle_radius":         
-                        show_radius = not show_radius       
+                    if action == "resume":
+                        paused = False
+                    elif action == "restart":
+                        return game_loop()
+                    elif action == "quit":
+                        running = False
+                    elif action == "toggle_radius":
+                        show_radius = not show_radius
                     continue
 
                 if manager.game_over:
@@ -242,7 +228,7 @@ def game_loop():
                     sound_manager.play("click")
                     manager.next_wave()
                     continue
-                
+
                 click_action = info_panel.handle_click(mouse_pos)
                 if click_action == "sell" and selected_tower:
                     manager.money += selected_tower.cost // 2
@@ -258,11 +244,11 @@ def game_loop():
                         manager.money -= cost
                         selected_tower.upgrade_damage()
                         sound_manager.play("upgrade")
-                        msg_hud.show("Урон увеличен!", GREEN)
+                        msg_hud.show("Урон улучшен!", GREEN)
                     else:
                         sound_manager.play("error")
                     continue
-                    
+
                 if click_action == "upgrade_radar" and selected_tower:
                     cost = selected_tower.get_radar_upgrade_cost()
                     if cost and manager.money >= cost:
@@ -274,7 +260,7 @@ def game_loop():
                         sound_manager.play("error")
                     continue
 
-                # Клик по построенной башне (выбор)
+                # Клик по башне для выбора
                 clicked_on_tower = False
                 for t in towers:
                     if t.contains_point(mouse_pos):
@@ -283,8 +269,8 @@ def game_loop():
                         build_ui.set_tower_type(None)
                         clicked_on_tower = True
                         break
-                
-                # Проверяем, кликнули ли мы по интерфейсу внизу
+
+                # Проверяем, кликнули ли мы по интерфейсу
                 clicked_on_ui = False
                 if is_mouse_click:
                     clicked_on_ui = build_ui.handle_click(mouse_pos)
@@ -294,7 +280,7 @@ def game_loop():
                 # Постройка новой башни
                 if not clicked_on_ui and not clicked_on_tower and build_ui.selected_class:
                     ok, reason = can_place_tower(mouse_pos[0], mouse_pos[1], path, towers)
-                    cost = build_ui.selected_class(0,0).cost
+                    cost = build_ui.selected_class(0, 0).cost
                     if ok and manager.money >= cost:
                         towers.append(build_ui.selected_class(mouse_pos[0], mouse_pos[1]))
                         manager.money -= cost
@@ -316,8 +302,8 @@ def game_loop():
                 if manager.wave_timer % 40 == 0:
                     # Достаем класс врага и номер волны из нашей сгенерированной очереди
                     enemy_class, wave_num = manager.current_wave_queue[manager.spawned_this_wave]
-        
-                    # Боссу нужен номер волны для расчета ХП, остальным — только путь
+
+                    # Если это босс, то передаем ему номер волны для масштабирования сложности
                     if enemy_class == BossEnemy:
                         new_enemy = BossEnemy(path, wave_num)
                     else:
@@ -355,8 +341,8 @@ def game_loop():
                 if proj.is_done():
                     projectiles.remove(proj)
                     continue
-                
-                # Попадание
+
+                # Попадание в цель
                 if proj.target in enemies:
                     dist = proj.get_distance_to(proj.target.x, proj.target.y)
                     if dist < proj.target.radius + proj.radius:
@@ -365,7 +351,7 @@ def game_loop():
                             for e in enemies:
                                 dist_to_explosion = e.get_distance_to(proj.x, proj.y)
                                 if dist_to_explosion <= proj.splash_radius:
-                                    falloff_factor = 1.0 - (dist_to_explosion / proj.splash_radius)   
+                                    falloff_factor = 1.0 - (dist_to_explosion / proj.splash_radius)
                                     actual_damage = max(1, int(proj.damage * falloff_factor))
                                     e.hp -= actual_damage
                         else:
@@ -385,7 +371,7 @@ def game_loop():
         # Отрисовка игрового мира
         if not paused and not manager.game_over:
             renderer.draw_frame(path, towers, enemies, projectiles)
-            
+
             if selected_tower and show_radius:
                 renderer.draw_tower_radius(selected_tower)
 
@@ -408,7 +394,7 @@ def game_loop():
             hp_color = YELLOW
         else:
             hp_color = RED
-            
+
         screen.blit(font.render(f"HP Базы: {manager.base_health}", True, hp_color), (15, 15))
         screen.blit(font.render(manager.get_hud_line(), True, WHITE), (15, 45))
         screen.blit(font.render(f"Рекорд: {highscore} волн", True, (200, 200, 200)), (15, 75))
@@ -421,7 +407,7 @@ def game_loop():
             overlay.set_alpha(200)
             overlay.fill(BLACK)
             screen.blit(overlay, (0, 0))
-            
+
             screen.blit(font_large.render("GAME OVER", True, RED), (WIDTH // 2 - 150, HEIGHT // 2 - 100))
             screen.blit(font.render(f"Вы дошли до {manager.wave} волны!", True, WHITE), (WIDTH // 2 - 120, HEIGHT // 2))
             screen.blit(font.render("Нажми [R] для рестарта или [Q] для выхода", True, YELLOW), (WIDTH // 2 - 180, HEIGHT // 2 + 50))
@@ -431,6 +417,7 @@ def game_loop():
 
     pygame.quit()
     sys.exit()
+
 
 if __name__ == "__main__":
     main_menu()
