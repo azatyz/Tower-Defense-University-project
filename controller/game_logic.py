@@ -3,45 +3,54 @@ from models.entities import BossEnemy, Projectile, can_place_tower
 
 
 def try_start_next_wave(manager):
-    if manager.wave_active or manager.game_over:
-        return False
+    if manager.game_over:
+        return False, "Игра уже окончена"
+    if manager.wave_active:
+        return False, "Волна уже идет"
+
     manager.next_wave()
-    return True
+    return True, f"Волна {manager.wave} началась!"
 
 
 def try_upgrade_tower_damage(manager, tower):
     if tower is None:
-        return False
+        return False, "Сначала выберите башню"
 
     cost = tower.get_damage_upgrade_cost()
-    if not cost or manager.money < cost:
-        return False
+    if cost is None:
+        return False, "Урон уже максимальный"
+    if manager.money < cost:
+        return False, f"Недостаточно денег: нужно {cost}$"
 
     manager.money -= cost
     tower.upgrade_damage()
-    return True
+    return True, "Урон улучшен!"
 
 
 def try_upgrade_tower_radar(manager, tower):
     if tower is None:
-        return False
+        return False, "Сначала выберите башню"
 
     cost = tower.get_radar_upgrade_cost()
-    if not cost or manager.money < cost:
-        return False
+    if cost is None:
+        return False, "Радар уже максимальный"
+    if manager.money < cost:
+        return False, f"Недостаточно денег: нужно {cost}$"
 
     manager.money -= cost
     tower.upgrade_radar()
-    return True
+    return True, "Радар улучшен!"
 
 
 def sell_tower(manager, towers, tower):
-    if tower is None or tower not in towers:
-        return False
+    if tower is None:
+        return False, "Сначала выберите башню"
+    if tower not in towers:
+        return False, "Эту башню нельзя продать"
 
     manager.money += tower.cost // 2
     towers.remove(tower)
-    return True
+    return True, "Башня продана!"
 
 
 def find_clicked_tower(towers, mouse_pos):
@@ -53,7 +62,7 @@ def find_clicked_tower(towers, mouse_pos):
 
 def try_build_tower(manager, tower_class, mouse_pos, path, towers):
     if tower_class is None:
-        return False, ""
+        return False, "Сначала выберите башню для строительства"
 
     x, y = mouse_pos
     can_build, reason = can_place_tower(x, y, path, towers)
@@ -63,11 +72,11 @@ def try_build_tower(manager, tower_class, mouse_pos, path, towers):
         return False, reason
 
     if manager.money < tower_cost:
-        return False, "Недостаточно денег!"
+        return False, f"Недостаточно денег: нужно {tower_cost}$"
 
     towers.append(tower_class(x, y))
     manager.money -= tower_cost
-    return True, ""
+    return True, "Башня построена!"
 
 
 def update_game(manager, path, enemies, towers, projectiles):

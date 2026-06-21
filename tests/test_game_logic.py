@@ -11,7 +11,15 @@ import pygame
 
 from config.save_manager import load_highscore
 from controller.game_controller import _persist_highscore
-from controller.game_logic import _apply_splash_damage, sell_tower, try_build_tower, update_game
+from controller.game_logic import (
+    _apply_splash_damage,
+    sell_tower,
+    try_build_tower,
+    try_start_next_wave,
+    try_upgrade_tower_damage,
+    try_upgrade_tower_radar,
+    update_game,
+)
 from models.entities import (
     BasicTower,
     BossEnemy,
@@ -51,7 +59,7 @@ class TowerPlacementTests(unittest.TestCase):
         built, reason = try_build_tower(manager, BasicTower, (450, 300), path, towers)
 
         self.assertTrue(built)
-        self.assertEqual(reason, "")
+        self.assertEqual(reason, "Башня построена!")
         self.assertEqual(len(towers), 1)
         self.assertIsInstance(towers[0], BasicTower)
         self.assertEqual(manager.money, 130)
@@ -74,9 +82,10 @@ class TowerPlacementTests(unittest.TestCase):
         tower = BasicTower(450, 300)
         towers = [tower]
 
-        sold = sell_tower(manager, towers, tower)
+        sold, message = sell_tower(manager, towers, tower)
 
         self.assertTrue(sold)
+        self.assertEqual(message, "Башня продана!")
         self.assertEqual(manager.money, tower.cost // 2)
         self.assertEqual(towers, [])
 
@@ -150,6 +159,15 @@ class GameManagerTests(unittest.TestCase):
         self.assertEqual(events[0]["kind"], "success")
         self.assertIn("Волна 3", events[0]["message"])
 
+    def test_start_wave_returns_warning_when_wave_already_active(self):
+        manager = GameManager()
+        manager.next_wave()
+
+        started, message = try_start_next_wave(manager)
+
+        self.assertFalse(started)
+        self.assertEqual(message, "Волна уже идет")
+
 class TowerUpgradeTests(unittest.TestCase):
     def test_radar_upgrade_increases_ranges(self):
         tower = BasicTower(100, 100)
@@ -162,6 +180,24 @@ class TowerUpgradeTests(unittest.TestCase):
         self.assertEqual(tower.radar_level, 2)
         self.assertGreater(tower.shoot_range, initial_shoot)
         self.assertGreater(tower.radar_range, initial_radar)
+
+    def test_damage_upgrade_returns_reason_when_tower_not_selected(self):
+        manager = GameManager()
+
+        upgraded, message = try_upgrade_tower_damage(manager, None)
+
+        self.assertFalse(upgraded)
+        self.assertEqual(message, "Сначала выберите башню")
+
+    def test_radar_upgrade_returns_reason_when_money_is_not_enough(self):
+        manager = GameManager()
+        manager.money = 10
+        tower = BasicTower(100, 100)
+
+        upgraded, message = try_upgrade_tower_radar(manager, tower)
+
+        self.assertFalse(upgraded)
+        self.assertIn("Недостаточно денег", message)
 
 
 class ProjectileTests(unittest.TestCase):

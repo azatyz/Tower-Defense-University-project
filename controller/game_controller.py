@@ -13,6 +13,13 @@ from view.audio import SoundManager
 from view.renderer import GameRenderer
 from view.ui import BuildUI, MessageHUD, PauseMenu, TowerInfoPanel, WaveUI, draw_game_ui
 
+WINDOW_TITLE = "Tower Defense - Игра"
+DEFAULT_FONT_SIZE = 28
+TITLE_FONT_SIZE = 72
+RESTART_DELAY_MS = 100
+QUIT_DELAY_MS = 200
+PAUSE_ACTION_DELAY_MS = 150
+
 TOWER_TYPES = {
     pygame.K_1: BasicTower,
     pygame.K_2: SniperTower,
@@ -43,12 +50,12 @@ class GameState:
 def run_game():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Tower Defense Project")
+    pygame.display.set_caption(WINDOW_TITLE)
     clock = pygame.time.Clock()
     renderer = GameRenderer(screen)
     sound_manager = SoundManager()
-    font = pygame.font.Font(None, 28)
-    font_large = pygame.font.Font(None, 72)
+    font = pygame.font.Font(None, DEFAULT_FONT_SIZE)
+    font_large = pygame.font.Font(None, TITLE_FONT_SIZE)
 
     while True:
         state = GameState()
@@ -147,11 +154,11 @@ def _handle_keydown(key, state, ui, sound_manager):
     if state.paused:
         if key == pygame.K_r:
             sound_manager.play("click")
-            pygame.time.delay(100)
+            pygame.time.delay(RESTART_DELAY_MS)
             return _finish_session("restart", state)
         elif key == pygame.K_q:
             sound_manager.play("click")
-            pygame.time.delay(200)
+            pygame.time.delay(QUIT_DELAY_MS)
             return _finish_session("quit", state)
         return None
 
@@ -168,8 +175,8 @@ def _handle_keydown(key, state, ui, sound_manager):
         _handle_radar_upgrade(state, ui["message"], sound_manager)
     elif key == pygame.K_s:
         _handle_sell(state, ui["message"], sound_manager)
-    elif key == pygame.K_e and game_logic.try_start_next_wave(state.manager):
-        sound_manager.play("click")
+    elif key == pygame.K_e:
+        _handle_wave_start(state.manager, ui["message"], sound_manager)
 
     return None
 
@@ -180,7 +187,7 @@ def _handle_primary_action(mouse_pos, state, ui, sound_manager, is_mouse_click):
         if action:
             sound_manager.play("click")
             if action in ("restart", "quit"):
-                pygame.time.delay(150)
+                pygame.time.delay(PAUSE_ACTION_DELAY_MS)
         if action == "resume":
             state.paused = False
         elif action == "restart":
@@ -195,8 +202,7 @@ def _handle_primary_action(mouse_pos, state, ui, sound_manager, is_mouse_click):
         return None
 
     if ui["wave"].handle_click(mouse_pos, state.manager) == "next_wave":
-        if game_logic.try_start_next_wave(state.manager):
-            sound_manager.play("click")
+        _handle_wave_start(state.manager, ui["message"], sound_manager)
         return None
 
     if _handle_info_panel_action(mouse_pos, state, ui["info"], ui["message"], sound_manager):
@@ -214,19 +220,8 @@ def _handle_primary_action(mouse_pos, state, ui, sound_manager, is_mouse_click):
         return None
 
     if ui["build"].selected_class:
-        built, message = game_logic.try_build_tower(
-            state.manager,
-            ui["build"].selected_class,
-            mouse_pos,
-            state.path,
-            state.towers,
-        )
-        if built:
-            sound_manager.play("build")
+        if _handle_build(state, ui["build"], mouse_pos, ui["message"], sound_manager):
             state.selected_tower = None
-        else:
-            sound_manager.play("error")
-            ui["message"].show(message, RED)
 
     return None
 
@@ -246,28 +241,47 @@ def _handle_info_panel_action(mouse_pos, state, info_panel, message_hud, sound_m
 
 
 def _handle_damage_upgrade(state, message_hud, sound_manager):
-    if game_logic.try_upgrade_tower_damage(state.manager, state.selected_tower):
-        sound_manager.play("upgrade")
-        message_hud.show("Урон улучшен!", GREEN)
-    else:
-        sound_manager.play("error")
+    upgraded, message = game_logic.try_upgrade_tower_damage(state.manager, state.selected_tower)
+    _show_action_feedback(message_hud, sound_manager, upgraded, message, "upgrade")
 
 
 def _handle_radar_upgrade(state, message_hud, sound_manager):
-    if game_logic.try_upgrade_tower_radar(state.manager, state.selected_tower):
-        sound_manager.play("upgrade")
-        message_hud.show("Радар улучшен!", GREEN)
-    else:
-        sound_manager.play("error")
+    upgraded, message = game_logic.try_upgrade_tower_radar(state.manager, state.selected_tower)
+    _show_action_feedback(message_hud, sound_manager, upgraded, message, "upgrade")
 
 
 def _handle_sell(state, message_hud, sound_manager):
-    if game_logic.sell_tower(state.manager, state.towers, state.selected_tower):
+    sold, message = game_logic.sell_tower(state.manager, state.towers, state.selected_tower)
+    if sold:
         state.selected_tower = None
-        sound_manager.play("upgrade")
-        message_hud.show("Башня продана!", YELLOW)
-    else:
-        sound_manager.play("error")
+    _show_action_feedback(message_hud, sound_manager, sold, message, "upgrade", success_color=YELLOW)
+
+
+def _handle_wave_start(manager, message_hud, sound_manager):
+    started, message = game_logic.try_start_next_wave(manager)
+    _show_action_feedback(message_hud, sound_manager, started, message, "click")
+
+
+def _handle_build(state, build_ui, mouse_pos, message_hud, sound_manager):
+    built, message = game_logic.try_build_tower(
+        state.manager,
+        build_ui.selected_class,
+        mouse_pos,
+        state.path,
+        state.towers,
+    )
+    _show_action_feedback(message_hud, sound_manager, built, message, "build")
+    return built
+
+
+def _show_action_feedback(message_hud, sound_manager, success, message, success_sound, success_color=GREEN):
+    if success:
+        sound_manager.play(success_sound)
+        message_hud.show(message, success_color)
+        return
+
+    sound_manager.play("error")
+    message_hud.show(message, RED)
 
 
 def _show_logic_events(events, message_hud):

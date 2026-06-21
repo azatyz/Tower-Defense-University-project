@@ -100,7 +100,7 @@ class BuildUI:
         screen.blit(hint_surf, (mx + 15, my - 60))
 
     def draw_toolbar(self, screen):
-        self.buttons.clear() # Чистка хитбоксов 
+        self.buttons.clear()
         
         panel_height = 60
         panel_rect = pygame.Rect(0, HEIGHT - panel_height, WIDTH, panel_height)
@@ -108,10 +108,10 @@ class BuildUI:
         pygame.draw.line(screen, (80, 80, 80), (0, HEIGHT - panel_height), (WIDTH, HEIGHT - panel_height), 2)
 
         options = [
-            (BasicTower, "[1] Basic 120$"),
-            (SniperTower, "[2] Sniper 200$"),
-            (FastTower, "[3] Fast 160$"),
-            (BombTower, "[4] Bomb 230$ AoE"),
+            (BasicTower, "[1] Basic - 120$"),
+            (SniperTower, "[2] Sniper - 200$"),
+            (FastTower, "[3] Fast - 160$"),
+            (BombTower, "[4] Bomb - 230$"),
         ]
         
         segment_width = WIDTH // len(options)
@@ -141,7 +141,6 @@ class BuildUI:
             
             screen.blit(text_surf, text_rect)
 
-    # Метод обработки клика
     def handle_click(self, mouse_pos):
         """Проверяет, кликнули ли мы в какую-то из кнопок на тулбаре"""
         for rect, tower_class in self.buttons:
@@ -176,9 +175,7 @@ class WaveUI:
 
         self.button_rect = pygame.Rect(WIDTH - 260, 60, 240, 40)
         pygame.draw.rect(screen, WHITE, self.button_rect, border_radius=8)
-        button_text = (
-            "Start wave" if not manager.wave_active else "Wave in progress"
-        )
+        button_text = "Начать волну" if not manager.wave_active else "Волна идет"
         button_surf = self.font.render(button_text, True, BLACK if not manager.wave_active else (120, 120, 120))
         screen.blit(button_surf, button_surf.get_rect(center=self.button_rect.center))
 
@@ -214,14 +211,14 @@ class TowerInfoPanel:
         shoot_range = tower.shoot_range
         
         lines = [
-            f"{tower.kind_name} Tower",
-            f"Урон (LVL {dmg_lvl}): {tower.damage}",
-            f"Радар (LVL {rad_lvl}): {radar_range}",
-            f"Орудие: {shoot_range}",
+            f"Башня: {tower.kind_name}",
+            f"Урон [{dmg_lvl}/{tower.max_level}]: {tower.damage}",
+            f"Радар [{rad_lvl}/{tower.max_level}]: {radar_range}",
+            f"Дальность атаки: {shoot_range}",
             f"Перезарядка: {tower.cooldown_max}",
         ]
         if tower.splash_radius > 0:
-            lines.append(f"Взрыв: {tower.splash_radius}")
+            lines.append(f"Радиус взрыва: {tower.splash_radius}")
 
         for index, line in enumerate(lines):
             color = YELLOW if index == 0 else WHITE
@@ -240,7 +237,7 @@ class TowerInfoPanel:
         # 1. Отрисовка кнопки урона [U]
         color_dmg = WHITE if can_upg_dmg and cost_dmg and money >= cost_dmg else (90, 90, 90)
         pygame.draw.rect(screen, color_dmg, self.upg_dmg_rect, border_radius=6)
-        label_dmg = f"Урон: {cost_dmg}$ (U)" if can_upg_dmg else "Урон: MAX"
+        label_dmg = f"Улучшить урон: {cost_dmg}$ [U]" if can_upg_dmg else "Урон: Максимум"
         text_col_dmg = BLACK if color_dmg == WHITE else WHITE
         surf_dmg = self.font.render(label_dmg, True, text_col_dmg)
         screen.blit(surf_dmg, surf_dmg.get_rect(center=self.upg_dmg_rect.center))
@@ -248,7 +245,7 @@ class TowerInfoPanel:
         # 2. Отрисовка кнопки радара [F]
         color_rad = WHITE if can_upg_rad and cost_rad and money >= cost_rad else (90, 90, 90)
         pygame.draw.rect(screen, color_rad, self.upg_rad_rect, border_radius=6)
-        label_rad = f"Радар: {cost_rad}$ (F)" if can_upg_rad else "Радар: MAX"
+        label_rad = f"Улучшить радар: {cost_rad}$ [F]" if can_upg_rad else "Радар: Максимум"
         text_col_rad = BLACK if color_rad == WHITE else WHITE
         surf_rad = self.font.render(label_rad, True, text_col_rad)
         screen.blit(surf_rad, surf_rad.get_rect(center=self.upg_rad_rect.center))
@@ -256,7 +253,7 @@ class TowerInfoPanel:
         # 3. Отрисовка кнопки продажи [S]
         sell_price = tower.cost // 2
         pygame.draw.rect(screen, (180, 50, 50), self.sell_rect, border_radius=6)
-        label_sell = f"Продать: {sell_price}$ (S)"
+        label_sell = f"Продать за {sell_price}$ [S]"
         surf_sell = self.font.render(label_sell, True, WHITE)
         screen.blit(surf_sell, surf_sell.get_rect(center=self.sell_rect.center))
 
@@ -283,7 +280,7 @@ class PauseMenu:
         overlay.fill(BLACK)
         screen.blit(overlay, (0, 0))
 
-        title = self.title_font.render("PAUSED", True, WHITE)
+        title = self.title_font.render("ПАУЗА", True, WHITE)
         title_rect = title.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 120))
         screen.blit(title, title_rect)
 
@@ -306,7 +303,7 @@ class PauseMenu:
             screen.blit(label, label.get_rect(center=rect.center))
             self.buttons[action] = rect 
 
-        hint = self.font.render("Нажми кнопку на экране или клавиатуре", True, WHITE)
+        hint = self.font.render("Можно нажать кнопку мышью или клавишу", True, WHITE)
         hint_rect = hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 240))
         screen.blit(hint, hint_rect)
 
@@ -373,7 +370,7 @@ def _draw_hud(screen, font, state):
 
     screen.blit(font.render(f"HP Базы: {state.manager.base_health}", True, hp_color), (15, 15))
     screen.blit(font.render(state.manager.get_hud_line(), True, WHITE), (15, 45))
-    screen.blit(font.render(f"Рекорд: {state.highscore} Волн", True, (200, 200, 200)), (15, 75))
+    screen.blit(font.render(f"Рекорд: {state.highscore} волн", True, (200, 200, 200)), (15, 75))
 
 
 def _draw_game_over(screen, font, font_large, state):
@@ -382,7 +379,7 @@ def _draw_game_over(screen, font, font_large, state):
     overlay.fill(BLACK)
     screen.blit(overlay, (0, 0))
 
-    screen.blit(font_large.render("GAME OVER", True, RED), (WIDTH // 2 - 150, HEIGHT // 2 - 100))
+    screen.blit(font_large.render("ПОРАЖЕНИЕ", True, RED), (WIDTH // 2 - 170, HEIGHT // 2 - 100))
     screen.blit(font.render(f"Вы дошли до {state.manager.wave} волны!", True, WHITE), (WIDTH // 2 - 120, HEIGHT // 2))
     screen.blit(
         font.render("Нажми [Esc], чтобы открыть меню паузы", True, YELLOW),

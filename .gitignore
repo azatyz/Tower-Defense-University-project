@@ -205,6 +205,7 @@ tempCodeRunnerFile.py
 
 # Локальный черновик финальной версии (для пошаговой разработки)
 .plan/
+save.json
 
 # Ruff stuff:
 .ruff_cache/

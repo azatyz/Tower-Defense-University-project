@@ -10,12 +10,13 @@ def main_menu():
     """Стартовое меню с анимацией и статистикой"""
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Tower Defense - Main Menu")
+    pygame.display.set_caption("Tower Defense - Главное меню")
     clock = pygame.time.Clock()
     sound_manager = SoundManager()
 
     font_title = pygame.font.Font(None, 120)
-    font_hint = pygame.font.Font(None, 50)
+    font_hint = pygame.font.Font(None, 56)
+    font_controls = pygame.font.Font(None, 30)
     font_stats = pygame.font.Font(None, 40)
 
     # Загружаем рекорд, чтобы показать его на стартете
@@ -60,7 +61,6 @@ def main_menu():
         screen.blit(title, title_rect)
 
         # 3. Интерактивная кнопка
-        # Проверяем, находится ли курсор в зоне кнопки
         hover_zone = pygame.Rect(WIDTH // 2 - 150, HEIGHT // 2 + 20, 300, 60)
         if hover_zone.collidepoint(mouse_pos):
             hint_text = "Начать игру"
@@ -73,9 +73,13 @@ def main_menu():
         hint_rect = hint.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 50))
         screen.blit(hint, hint_rect)
 
+        controls = font_controls.render("Enter / Space / ЛКМ", True, (170, 170, 170))
+        controls_rect = controls.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 95))
+        screen.blit(controls, controls_rect)
+
         # 4. Вывод рекорда
         stats = font_stats.render(f"Ваш рекорд: {highscore} волн", True, (150, 150, 150))
-        stats_rect = stats.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 130))
+        stats_rect = stats.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 155))
         screen.blit(stats, stats_rect)
 
         pygame.display.flip()

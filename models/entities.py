@@ -140,7 +140,7 @@ class Tower(GameObject):
     """Базовый класс башни с раздельной прокачкой и захватом цели"""
 
     cost = 0
-    kind_name = "Tower"
+    kind_name = "Башня"
     color = GREEN
     range = 150
     damage = 25
@@ -255,7 +255,7 @@ class Tower(GameObject):
 
 class BasicTower(Tower):
     cost = 120
-    kind_name = "Basic"
+    kind_name = "Базовая"
     color = GREEN
     range = 150
     damage = 20
@@ -264,7 +264,7 @@ class BasicTower(Tower):
 
 class SniperTower(Tower):
     cost = 200
-    kind_name = "Sniper"
+    kind_name = "Снайперская"
     color = BLUE
     range = 240
     damage = 50
@@ -274,7 +274,7 @@ class SniperTower(Tower):
 
 class FastTower(Tower):
     cost = 160
-    kind_name = "Fast"
+    kind_name = "Быстрая"
     color = YELLOW
     range = 130
     damage = 15
@@ -283,7 +283,7 @@ class FastTower(Tower):
 
 class BombTower(Tower):
     cost = 230
-    kind_name = "Bomb"
+    kind_name = "Бомбовая"
     color = ORANGE
     range = 180
     damage = 45
