@@ -114,7 +114,7 @@ def _complete_wave_if_needed(manager, enemies, events):
         return
 
     manager.wave_active = False
-    manager.money += 100 + manager.wave * 20
+    manager.money += 50 + manager.wave * 10
     events.append({"message": f"Волна {manager.wave} пройдена!", "kind": "success"})
 
 

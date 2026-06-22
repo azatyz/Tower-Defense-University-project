@@ -28,6 +28,15 @@ class GameManager:
     def generate_dynamic_wave(self):
         """Динамический алгоритм генерации волны"""
         wave_queue = []
+
+        # Первые волны нужны как onboarding: игрок должен успеть понять
+        # темп игры, базовую экономику и места для ключевых башен.
+        if self.wave == 1:
+            return [(Enemy, self.wave) for _ in range(5)]
+        if self.wave == 2:
+            return [(Enemy, self.wave) for _ in range(8)]
+        if self.wave == 3:
+            return [(Enemy, self.wave) for _ in range(6)] + [(FastEnemy, self.wave) for _ in range(2)]
         
         if self.wave % 10 == 0:
             # Юбилейная волна: спавним Босса и немного поддержки
@@ -37,8 +46,11 @@ class GameManager:
             random.shuffle(wave_queue)
             return wave_queue
 
-        # 2. Расчет бюджета на волну
-        budget = 10 + int(self.wave ** 1.5 * 3)
+        # 2. Расчет бюджета на волну:
+        # мягче стартуем, а с 5-й волны заметно усиливаем давление на игрока
+        budget = 8 + int(self.wave ** 1.5 * 3)
+        if self.wave >= 5:
+            budget += (self.wave - 4) * 5
         
         # 3. Каталог врагов
         enemy_catalog = {

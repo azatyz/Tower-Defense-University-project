@@ -34,10 +34,10 @@ class Enemy(GameObject):
         self.path = path
         self.path_index = 0
         self.x, self.y = path.get_point_at_index(0)
-        self.speed = 3
+        self.speed = 3.5
         self.hp = 100
         self.max_hp = self.hp
-        self.reward = 50
+        self.reward = 20
         self.damage = 10
         self.radius = 15
         self.color = RED
@@ -244,13 +244,11 @@ class Tower(GameObject):
         if dist > self.radar_range:
             return
 
-        laser_surf = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         start_pos = (self.x, self.y)
         end_pos = (int(self.current_target.x), int(self.current_target.y))
-        pygame.draw.line(laser_surf, (*self.color, 90), start_pos, end_pos, 2)
+        pygame.draw.line(screen, self.color, start_pos, end_pos, 2)
         if dist <= self.shoot_range:
-            pygame.draw.circle(laser_surf, RED, end_pos, 4)
-        screen.blit(laser_surf, (0, 0))
+            pygame.draw.circle(screen, RED, end_pos, 4)
 
 
 class BasicTower(Tower):
@@ -259,7 +257,8 @@ class BasicTower(Tower):
     color = GREEN
     range = 150
     damage = 20
-    cooldown_max = 25
+    cooldown_max = 22
+    target_strategy = NearestTargetStrategy()
 
 
 class SniperTower(Tower):
@@ -268,7 +267,7 @@ class SniperTower(Tower):
     color = BLUE
     range = 240
     damage = 50
-    cooldown_max = 60
+    cooldown_max = 65
     target_strategy = StrongestTargetStrategy()
 
 
@@ -279,7 +278,7 @@ class FastTower(Tower):
     range = 130
     damage = 15
     cooldown_max = 15
-
+    target_strategy = NearestTargetStrategy()
 
 class BombTower(Tower):
     cost = 230
@@ -287,7 +286,7 @@ class BombTower(Tower):
     color = ORANGE
     range = 180
     damage = 45
-    cooldown_max = 80
+    cooldown_max = 75
     splash_radius = 70
     target_strategy = FirstInPathTargetStrategy()
 
@@ -379,7 +378,7 @@ class FastEnemy(Enemy):
         self.speed = 6
         self.hp = 70
         self.max_hp = self.hp
-        self.reward = 40
+        self.reward = 25
         self.radius = 12
         self.color = YELLOW
 
@@ -387,10 +386,10 @@ class FastEnemy(Enemy):
 class TankEnemy(Enemy):
     def __init__(self, path):
         super().__init__(path)
-        self.speed = 2
-        self.hp = 180
+        self.speed = 2.5
+        self.hp = 220
         self.max_hp = self.hp
-        self.reward = 80
+        self.reward = 45
         self.radius = 20
         self.color = (180, 40, 40)
 
@@ -403,16 +402,17 @@ class BossEnemy(Enemy):
         # Вычисляем множитель босса
         multiplier = max(1, current_wave // 10)
         
-        # Базовые 500 ХП умножаются на 1.5 с каждым юбилеем
-        self.max_hp = int(500 * (1.5 ** (multiplier - 1)))
+        # Босс должен ощущаться как отдельное серьёзное событие волны,
+        # поэтому у него высокий базовый запас HP и агрессивный рост по юбилеям.
+        self.max_hp = int(5000 * (2.1 ** (multiplier - 1)))
         self.hp = self.max_hp
         
-        self.speed = 0.5 
+        self.speed = 1.4 + 0.2 * (multiplier - 1)
         self.radius = 25
         
-        self.reward = 150 * multiplier
+        self.reward = 180 * multiplier
         
-        self.damage = 25
+        self.damage = 50
 
     def _draw_body(self, screen):
         pygame.draw.circle(screen, (138, 43, 226), (int(self.x), int(self.y)), self.radius)

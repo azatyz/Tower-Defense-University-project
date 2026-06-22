@@ -10,6 +10,7 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame
 
 from config.save_manager import load_highscore
+from config.settings import START_MONEY
 from controller.game_controller import _persist_highscore
 from controller.game_logic import (
     _apply_splash_damage,
@@ -62,7 +63,7 @@ class TowerPlacementTests(unittest.TestCase):
         self.assertEqual(reason, "Башня построена!")
         self.assertEqual(len(towers), 1)
         self.assertIsInstance(towers[0], BasicTower)
-        self.assertEqual(manager.money, 130)
+        self.assertEqual(manager.money, START_MONEY - BasicTower.cost)
 
     def test_build_tower_fails_when_money_is_not_enough(self):
         path = create_default_path()
@@ -119,7 +120,7 @@ class GameManagerTests(unittest.TestCase):
         manager.next_wave()
 
         self.assertEqual(manager.wave, 1)
-        self.assertEqual(manager.enemies_in_wave, 13) 
+        self.assertEqual(manager.enemies_in_wave, 5)
         self.assertTrue(manager.wave_active)
         self.assertEqual(manager.spawned_this_wave, 0)
 
@@ -141,7 +142,7 @@ class GameManagerTests(unittest.TestCase):
 
         update_game(manager, path, [boss], [], [])
 
-        self.assertEqual(manager.base_health, 75)
+        self.assertEqual(manager.base_health, 50)
 
     def test_completed_wave_disables_wave_and_grants_bonus(self):
         path = create_default_path()
@@ -155,7 +156,7 @@ class GameManagerTests(unittest.TestCase):
         events = update_game(manager, path, [], [], [])
 
         self.assertFalse(manager.wave_active)
-        self.assertEqual(manager.money, 160)
+        self.assertEqual(manager.money, 80)
         self.assertEqual(events[0]["kind"], "success")
         self.assertIn("Волна 3", events[0]["message"])
 
@@ -274,5 +275,3 @@ class SaveManagerTests(unittest.TestCase):
 if __name__ == "__main__":
     pygame.init()
     unittest.main()
-
-
