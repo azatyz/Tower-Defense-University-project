@@ -404,10 +404,10 @@ class BossEnemy(Enemy):
         
         # Босс должен ощущаться как отдельное серьёзное событие волны,
         # поэтому у него высокий базовый запас HP и агрессивный рост по юбилеям.
-        self.max_hp = int(5000 * (2.1 ** (multiplier - 1)))
+        self.max_hp = int(4000 * (2 ** (multiplier - 1)))
         self.hp = self.max_hp
         
-        self.speed = 1.4 + 0.2 * (multiplier - 1)
+        self.speed = 1.4 + 0.25 * (multiplier - 1)
         self.radius = 25
         
         self.reward = 180 * multiplier

@@ -394,14 +394,15 @@ def draw_game_ui(
     if state.selected_tower and state.show_radius and not state.manager.game_over:
         renderer.draw_tower_radius(state.selected_tower)
 
-    build_ui.draw_preview(
-        screen,
-        mouse_pos,
-        state.path,
-        state.towers,
-        state.manager.money,
-        state.manager.game_over,
-    )
+    if not state.paused:
+        build_ui.draw_preview(
+            screen,
+            mouse_pos,
+            state.path,
+            state.towers,
+            state.manager.money,
+            state.manager.game_over,
+        )
     build_ui.draw_toolbar(screen)
     wave_ui.draw(screen, state.manager, state.enemies)
     info_panel.draw(screen, state.selected_tower, state.manager.money)
