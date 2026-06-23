@@ -15,7 +15,6 @@ class SoundManager:
 
         self.sounds = {}
         
-        # Пытаемся загрузить звуки
         self._load_sound("click", "assets/click.wav")
         self._load_sound("build", "assets/build.wav")
         self._load_sound("error", "assets/error.wav")
